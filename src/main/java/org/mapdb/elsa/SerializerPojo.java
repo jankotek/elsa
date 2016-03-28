@@ -496,7 +496,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             //is unknown Class or uses specialized serialization
             if (classId == -1 || classInfo.useObjectStream) {
                 //deserialize using object stream
-                ObjectInputStream2 in2 = new ObjectInputStream2(this, in, getClassInfos());
+                ObjectInputStream2 in2 = new ObjectInputStream2(this, wrapStream(in), getClassInfos());
                 Object o = in2.readObject();
                 objectStack.add(o);
                 return o;
@@ -529,6 +529,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }catch(ClassNotFoundException e){
             throw new ElsaException(e);
         }
+    }
+
+    private InputStream wrapStream(DataInput in) {
+        if(in instanceof InputStream)
+            return (InputStream) in;
+        return new ElsaUtil.DataInputToStream(in);
     }
 
 

@@ -16,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest{
 
-    SerializerPojo p = new SerializerPojo(null,null,null,null, null, null, null);
+    SerializerPojo p = new SerializerPojo();
 
     enum Order
     {
@@ -24,25 +24,26 @@ public class SerializerPojoTest{
         DESCENDING
     }
     private byte[] serialize(Object i) throws IOException {
-        DataIO.DataOutputByteArray in = new DataIO.DataOutputByteArray();
-        p.serialize(in, i);
-        return in.copyBytes();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream2 out2 = new ObjectOutputStream2(p, out);
+        out2.writeObject(i);
+        return out.toByteArray();
     }
 
     private Object deserialize(byte[] buf) throws IOException {
-        return p.deserialize(new DataIO.DataInputByteBuffer(ByteBuffer.wrap(buf),0),-1);
+        return p.deserialize(new DataInputStream(new ByteArrayInputStream(buf)),-1);
     }
 
 
     @Test public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
-        o = (Order) TT.clone(o, p);
+        o = SerializerBaseTest.clonePojo(o);
         assertEquals(o,Order.ASCENDING );
         assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
         assertEquals(o.name(),Order.ASCENDING .name());
 
         o = Order.DESCENDING;
-        o = (Order) TT.clone(o, p);
+        o = SerializerBaseTest.clonePojo(o);
         assertEquals(o,Order.DESCENDING );
         assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
         assertEquals(o.name(),Order.DESCENDING .name());
@@ -198,7 +199,7 @@ public class SerializerPojoTest{
 
     @Test public void testSerializable() throws Exception {
 
-        assertEquals(b, TT.clone(b, p));
+        assertEquals(b, SerializerBaseTest.clonePojo(b));
     }
 
 
@@ -206,7 +207,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) TT.clone(b, p);
+        AbstractMap.SimpleEntry bx = SerializerBaseTest.clonePojo(b);
         assertEquals(bx, b);
         assert (bx.getKey() == bx.getValue());
 
@@ -216,7 +217,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
-        AbstractMap.SimpleEntry bx = (AbstractMap.SimpleEntry) TT.clone(b, p);
+        AbstractMap.SimpleEntry bx =SerializerBaseTest.clonePojo(b);
         assertTrue(bx == bx.getValue());
         assertEquals(bx.getKey(), "abcd");
 
@@ -228,61 +229,61 @@ public class SerializerPojoTest{
         l.add("123");
         l.add(l);
 
-        ArrayList l2 = (ArrayList) TT.clone(l, p);
+        ArrayList l2 = SerializerBaseTest.clonePojo(l);
 
         assertTrue(l2.size() == 2);
         assertEquals(l2.get(0), "123");
         assertTrue(l2.get(1) == l2);
     }
-
-    @Test public void testPersistedSimple() throws Exception {
-
-        File f = TT.tempDbFile();
-        DB r1 = DBMaker.fileDB(f).make();
-        long recid = r1.engine.put("AA",r1.getDefaultSerializer());
-        r1.commit();
-        r1.close();
-
-         r1 = DBMaker.fileDB(f).make();
-
-        String a2 = (String) r1.engine.get(recid, r1.getDefaultSerializer());
-        r1.close();
-        assertEquals("AA", a2);
-
-    }
-
-
-    @Test public void testPersisted() throws Exception {
-        Bean1 b1 = new Bean1("abc", "dcd");
-        File f = TT.tempDbFile();
-        DB r1 = DBMaker.fileDB(f).make();
-        long recid = r1.engine.put(b1, r1.getDefaultSerializer());
-        r1.commit();
-        r1.close();
-
-        r1 = DBMaker.fileDB(f).make();
-
-        Bean1 b2 = (Bean1) r1.engine.get(recid,r1.getDefaultSerializer());
-        r1.close();
-        assertEquals(b1, b2);
-
-    }
-
-
-    @Test public void test_write_object_advanced_serializationm(){
-        Object[] o = new Object[]{
-                new GregorianCalendar(1,1,1),
-                new HttpCookie("aa","bb")
-        };
-
-        for(Object oo:o){
-            DB db = DBMaker.memoryDB().make();
-            long recid = db.engine.put(oo, db.getDefaultSerializer());
-            assertEquals(oo, db.engine.get(recid, db.getDefaultSerializer()));
-        }
-
-    }
-
+// TODO replicate folliwng mapdb tests
+//    @Test public void testPersistedSimple() throws Exception {
+//
+//        File f = TT.tempDbFile();
+//        DB r1 = DBMaker.fileDB(f).make();
+//        long recid = r1.engine.put("AA",r1.getDefaultSerializer());
+//        r1.commit();
+//        r1.close();
+//
+//         r1 = DBMaker.fileDB(f).make();
+//
+//        String a2 = (String) r1.engine.get(recid, r1.getDefaultSerializer());
+//        r1.close();
+//        assertEquals("AA", a2);
+//
+//    }
+//
+//
+//    @Test public void testPersisted() throws Exception {
+//        Bean1 b1 = new Bean1("abc", "dcd");
+//        File f = TT.tempDbFile();
+//        DB r1 = DBMaker.fileDB(f).make();
+//        long recid = r1.engine.put(b1, r1.getDefaultSerializer());
+//        r1.commit();
+//        r1.close();
+//
+//        r1 = DBMaker.fileDB(f).make();
+//
+//        Bean1 b2 = (Bean1) r1.engine.get(recid,r1.getDefaultSerializer());
+//        r1.close();
+//        assertEquals(b1, b2);
+//
+//    }
+//
+//
+//    @Test public void test_write_object_advanced_serializationm(){
+//        Object[] o = new Object[]{
+//                new GregorianCalendar(1,1,1),
+//                new HttpCookie("aa","bb")
+//        };
+//
+//        for(Object oo:o){
+//            DB db = DBMaker.memoryDB().make();
+//            long recid = db.engine.put(oo, db.getDefaultSerializer());
+//            assertEquals(oo, db.engine.get(recid, db.getDefaultSerializer()));
+//        }
+//
+//    }
+//
 
     public static class test_pojo_reload_TestClass implements Serializable
     {
@@ -342,12 +343,12 @@ public class SerializerPojoTest{
         int bb = 11;
     }
 
-    @Test public void test_transient(){
+    @Test public void test_transient() throws IOException {
         test_transient t = new test_transient();
         t.aa = 12;
         t.ss = "bb";
         t.bb = 13;
-        t = (test_transient) TT.clone(t, p);
+        t = (test_transient) SerializerBaseTest.clonePojo(t);
         assertEquals(0,t.aa);
         assertEquals(null,t.ss);
         assertEquals(13,t.bb);
@@ -377,14 +378,14 @@ public class SerializerPojoTest{
         }
     }
 
-
-    @Test public void testIssue177() throws UnknownHostException {
-        DB db = DBMaker.memoryDB().make();
-        InetAddress value = InetAddress.getByName("127.0.0.1");
-        long recid = db.engine.put(value, db.getDefaultSerializer());
-        Object value2 = db.engine.get(recid,db.getDefaultSerializer());
-        assertEquals(value,value2);
-    }
+//  TODO replicate without mapdb
+//    @Test public void testIssue177() throws UnknownHostException {
+//        DB db = DBMaker.memoryDB().make();
+//        InetAddress value = InetAddress.getByName("127.0.0.1");
+//        long recid = db.engine.put(value, db.getDefaultSerializer());
+//        Object value2 = db.engine.get(recid,db.getDefaultSerializer());
+//        assertEquals(value,value2);
+//    }
 
     //this can not be serialized, it alwaes throws exception on serialization
     static final class RealClass implements Serializable, Externalizable{
@@ -404,26 +405,26 @@ public class SerializerPojoTest{
 
     }
 
-
-    @Test
-    public void class_registered_after_commit(){
-        DB db = DBMaker.memoryDB().transactionDisable().make();
-
-        SerializerPojo ser = (SerializerPojo) db.getDefaultSerializer();
-        assertEquals(0, ser.getClassInfos.run().length);
-        assertEquals(0, db.unknownClasses.size());
-
-        //add some unknown class, DB should be notified
-        db.getEngine().put(new Bean1("a","b"),ser);
-        assertEquals(0, ser.getClassInfos.run().length);
-        assertEquals(1, db.unknownClasses.size());
-
-        //commit, class should become known
-        db.commit();
-        assertEquals(1, ser.getClassInfos.run().length);
-        assertEquals(0, db.unknownClasses.size());
-
-    }
+//TODO replicate without mapdb
+//    @Test
+//    public void class_registered_after_commit(){
+//        DB db = DBMaker.memoryDB().transactionDisable().make();
+//
+//        SerializerPojo ser = (SerializerPojo) db.getDefaultSerializer();
+//        assertEquals(0, ser.getClassInfos.run().length);
+//        assertEquals(0, db.unknownClasses.size());
+//
+//        //add some unknown class, DB should be notified
+//        db.getEngine().put(new Bean1("a","b"),ser);
+//        assertEquals(0, ser.getClassInfos.run().length);
+//        assertEquals(1, db.unknownClasses.size());
+//
+//        //commit, class should become known
+//        db.commit();
+//        assertEquals(1, ser.getClassInfos.run().length);
+//        assertEquals(0, db.unknownClasses.size());
+//
+//    }
 
 
     public static class SS implements Serializable{
@@ -454,34 +455,34 @@ public class SerializerPojoTest{
     }
 
     @Test
-    public void testWriteReplace() throws ObjectStreamException {
+    public void testWriteReplace() throws IOException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m), TT.clone(m, p));
+        assertEquals(new LinkedHashMap(m), SerializerBaseTest.clonePojo(m));
     }
+
+//  TODO replicate without mapdb
+//    @Test
+//    public void testWriteReplace2() throws IOException {
+//        File f = File.createTempFile("mapdbTest","mapdb");
+//        Map m = new MM();
+//        m.put("11", "111");
+//        DB db = DBMaker.fileDB(f).transactionDisable().make();
+//        db.treeMap("map").put("key",m);
+//        db.commit();
+//        db.close();
+//
+//        db = DBMaker.fileDB(f).transactionDisable().make();
+//
+//        assertEquals(new LinkedHashMap(m), db.treeMap("map").get("key"));
+//    }
 
 
     @Test
-    public void testWriteReplace2() throws IOException {
-        File f = File.createTempFile("mapdbTest","mapdb");
-        Map m = new MM();
-        m.put("11", "111");
-        DB db = DBMaker.fileDB(f).transactionDisable().make();
-        db.treeMap("map").put("key",m);
-        db.commit();
-        db.close();
-
-        db = DBMaker.fileDB(f).transactionDisable().make();
-
-        assertEquals(new LinkedHashMap(m), db.treeMap("map").get("key"));
-    }
-
-
-    @Test
-    public void testWriteReplaceWrap() throws ObjectStreamException {
+    public void testWriteReplaceWrap() throws IOException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m), TT.clone(m, p));
+        assertEquals(new LinkedHashMap(m), SerializerBaseTest.clonePojo(m));
     }
 
 // TODO reproduce this test without mapdb
@@ -516,14 +517,15 @@ public class SerializerPojoTest{
 
     @Test(expected = ClassCastException.class)
     public void java_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
-        TT.cloneJavaSerialization(new WriteReplaceBB());
+        SerializerBaseTest.cloneJava(new WriteReplaceBB());
     }
 
-    @Test(expected = ClassCastException.class)
-    public void pojo_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
-        DB db = DBMaker.heapDB().make();
-        TT.clone(new WriteReplaceBB(), db.getDefaultSerializer());
-    }
+// TODO replicate without mapdb
+//    @Test(expected = ClassCastException.class)
+//    public void pojo_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
+//        DB db = DBMaker.heapDB().make();
+//        TT.clone(new WriteReplaceBB(), db.getDefaultSerializer());
+//    }
 
     static  class ExtHashMap extends HashMap<String,String>{}
 

@@ -51,9 +51,10 @@ public class SerializerBaseTest{
     }
 
     void serSize(int expected, Object val) throws IOException {
-        DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-        Serializer.BASIC.serialize(out,val);
-        assertEquals(expected, out.pos);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream2 out2 = new ObjectOutputStream2(new SerializerPojo(), out);
+        out2.writeObject(val);
+        assertEquals(expected, out.toByteArray().length);
     }
 
     @Test public void testIntSize() throws IOException {
@@ -446,23 +447,31 @@ public class SerializerBaseTest{
 
     @Test public void test_singleton_reverse() throws IOException {
         SerializerBase b = new SerializerBase();
-        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size);
-    }
-
-
-    @Test public void test_tuple_key_serializer() throws IOException {
-        assertEquals(BTreeKeySerializer.ARRAY2, clone(BTreeKeySerializer.ARRAY2));
-        assertEquals(BTreeKeySerializer.ARRAY3, clone(BTreeKeySerializer.ARRAY3));
-        assertEquals(BTreeKeySerializer.ARRAY4, clone(BTreeKeySerializer.ARRAY4));
+        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size());
     }
 
 
 
+    private static final char[] chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray();
 
+
+    public static String randomString(int size) {
+        return randomString(size, (int) (100000 * Math.random()));
+    }
+
+    public static String randomString(int size, int seed) {
+        StringBuilder b = new StringBuilder(size);
+        for(int i=0;i<size;i++){
+            b.append(chars[Math.abs(seed)%chars.length]);
+            seed = 31*seed;
+
+        }
+        return b.toString();
+    }
 
     @Test public void test_strings_var_sizes() throws IOException {
         for(int i=0;i<50;i++){
-            String s = TT.randomString(i);
+            String s = randomString(i);
             assertEquals(s, clone((s)));
         }
     }
@@ -486,25 +495,45 @@ public class SerializerBaseTest{
 
     /* clone value using serialization */
     <E> E clone(E value) throws IOException {
-        return clone2(value,(Serializer<E>)Serializer.BASIC);
+        return clonePojo(value);
+    }
+
+    static <E> E clonePojo(E value) throws IOException {
+        SerializerPojo p = new SerializerPojo();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream2 out2 = new ObjectOutputStream2(p, out);
+        out2.writeObject(value);
+        out2.flush();
+        out2.close();
+
+        ObjectInputStream ins = new ObjectInputStream2(p,new ByteArrayInputStream(out.toByteArray()));
+        try {
+            return (E) ins.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
+    }
+
+    static <E> E cloneJava(E value) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream out2 = new ObjectOutputStream(out);
+        out2.writeObject(value);
+        out2.flush();
+        out2.close();
+
+        ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
+        try {
+            return (E) ins.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 
 
     public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
         @Override
         <E> E clone(E value) throws IOException {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ObjectOutputStream out2 = new ObjectOutputStream(out);
-            out2.writeObject(value);
-            out2.flush();
-            out2.close();
-
-            ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
-            try {
-                return (E) ins.readObject();
-            } catch (ClassNotFoundException e) {
-                throw new IOException(e)
-            }
+            return cloneJava(value);
         }
     }
 

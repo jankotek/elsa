@@ -13,6 +13,10 @@ public final class ObjectOutputStream2 extends ObjectOutputStream {
     private SerializerPojo serializerPojo;
     private final SerializerPojo.ClassInfo[] classes;
 
+    protected ObjectOutputStream2(SerializerPojo serializerPojo, OutputStream out) throws IOException, SecurityException {
+        this(serializerPojo, out, serializerPojo.getClassInfos());
+    }
+
     protected ObjectOutputStream2(SerializerPojo serializerPojo, OutputStream out, SerializerPojo.ClassInfo[] classes) throws IOException, SecurityException {
         super(out);
         this.serializerPojo = serializerPojo;

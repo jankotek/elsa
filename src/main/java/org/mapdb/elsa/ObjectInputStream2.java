@@ -1,9 +1,6 @@
 package org.mapdb.elsa;
 
-import java.io.DataInput;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectStreamClass;
+import java.io.*;
 
 /**
  * Created by jan on 3/28/16.
@@ -18,15 +15,21 @@ public final class ObjectInputStream2 extends ObjectInputStream {
     private ObjectStreamClass lastDescriptor;
     private Class lastDescriptorClass;
 
-    protected ObjectInputStream2(SerializerPojo serializerPojo, DataInput in, SerializerPojo.ClassInfo[] classes) throws IOException, SecurityException {
-        super(new ElsaUtil.DataInputToStream(in));
+
+    protected ObjectInputStream2(SerializerPojo serializerPojo, InputStream in) throws IOException, SecurityException {
+        this(serializerPojo, in, serializerPojo.getClassInfos());
+    }
+
+
+    protected ObjectInputStream2(SerializerPojo serializerPojo, InputStream in, SerializerPojo.ClassInfo[] classes) throws IOException, SecurityException {
+        super(in);
         this.serializerPojo = serializerPojo;
         this.classes = classes;
     }
 
     @Override
     protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-        int classId = ElsaUtil.unpackInt((DataInput)this);
+        int classId = ElsaUtil.unpackInt((InputStream)this);
 
         final Class clazz;
         String className;
