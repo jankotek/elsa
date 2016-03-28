@@ -155,7 +155,7 @@ public class SerializerBase{
     static protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
     static protected Class<?> loadClass(String name) throws ClassNotFoundException {
-        return classLoader.loadClass(name);
+        return Class.forName(name, true, classLoader);
     }
 
 
@@ -255,7 +255,9 @@ public class SerializerBase{
             @Override
             public void serialize(DataOutput out, BigInteger value, FastArrayList objectStack) throws IOException {
                 out.write(Header.BIGINTEGER);
-                SER_BYTE_ARRAY.serialize(out,value.toByteArray(),objectStack);
+                byte[] b = value.toByteArray();
+                ElsaUtil.packInt(out, b.length);
+                out.write(b);
             }
         });
 
@@ -263,7 +265,9 @@ public class SerializerBase{
             @Override
             public void serialize(DataOutput out, BigDecimal value, FastArrayList objectStack) throws IOException {
                 out.write(Header.BIGDECIMAL);
-                SER_BYTE_ARRAY.serialize(out,value.unscaledValue().toByteArray(),objectStack);
+                byte[] b = value.unscaledValue().toByteArray();
+                ElsaUtil.packInt(out, b.length);
+                out.write(b);
                 ElsaUtil.packInt(out, value.scale());
             }
         });

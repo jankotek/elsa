@@ -52,8 +52,8 @@ public class SerializerBaseTest{
 
     void serSize(int expected, Object val) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ObjectOutputStream2 out2 = new ObjectOutputStream2(new SerializerPojo(), out);
-        out2.writeObject(val);
+        DataOutputStream out2 = new DataOutputStream(out);
+        new SerializerPojo().serialize(out2, val);
         assertEquals(expected, out.toByteArray().length);
     }
 
