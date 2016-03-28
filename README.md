@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/jankotek/elsa/master/misc/logo.svg" width=90 height=80 align="left"/>
+<img src="https://raw.githubusercontent.com/jankotek/elsa/master/misc/logo.png" width=90 height=80 align="left"/>
 
 Elsa Java Serialization
 =======================
