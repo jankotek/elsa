@@ -501,17 +501,12 @@ public class SerializerBaseTest{
     static <E> E clonePojo(E value) throws IOException {
         SerializerPojo p = new SerializerPojo();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ObjectOutputStream2 out2 = new ObjectOutputStream2(p, out);
-        out2.writeObject(value);
-        out2.flush();
-        out2.close();
+        DataOutputStream out2 = new DataOutputStream(out);
+        p.serialize(out2, value);
 
-        ObjectInputStream ins = new ObjectInputStream2(p,new ByteArrayInputStream(out.toByteArray()));
-        try {
-            return (E) ins.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException(e);
-        }
+        DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
+        return (E) p.deserialize(ins, -1);
+
     }
 
     static <E> E cloneJava(E value) throws IOException {
