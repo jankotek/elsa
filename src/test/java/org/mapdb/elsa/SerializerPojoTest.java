@@ -484,21 +484,21 @@ public class SerializerPojoTest{
         assertEquals(new LinkedHashMap(m), TT.clone(m, p));
     }
 
-
-    @Test
-    public void testWriteReplace2Wrap() throws IOException {
-        File f = File.createTempFile("mapdbTest", "mapdb");
-        SS m = new SS(new MM());
-        m.mm.put("11", "111");
-        DB db = DBMaker.fileDB(f).transactionDisable().make();
-        db.treeMap("map").put("key", m);
-        db.commit();
-        db.close();
-
-        db = DBMaker.fileDB(f).transactionDisable().make();
-
-        assertEquals(new LinkedHashMap(m.mm), ((SS)db.treeMap("map").get("key")).mm);
-    }
+// TODO reproduce this test without mapdb
+//    @Test
+//    public void testWriteReplace2Wrap() throws IOException {
+//        File f = File.createTempFile("mapdbTest", "mapdb");
+//        SS m = new SS(new MM());
+//        m.mm.put("11", "111");
+//        DB db = DBMaker.fileDB(f).transactionDisable().make();
+//        db.treeMap("map").put("key", m);
+//        db.commit();
+//        db.close();
+//
+//        db = DBMaker.fileDB(f).transactionDisable().make();
+//
+//        assertEquals(new LinkedHashMap(m.mm), ((SS)db.treeMap("map").get("key")).mm);
+//    }
 
 
     static class WriteReplaceAA implements Serializable{

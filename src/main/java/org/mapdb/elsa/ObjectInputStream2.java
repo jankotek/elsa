@@ -26,7 +26,7 @@ public final class ObjectInputStream2 extends ObjectInputStream {
 
     @Override
     protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-        int classId = ElsaUtil.unpackInt(this);
+        int classId = ElsaUtil.unpackInt((DataInput)this);
 
         final Class clazz;
         String className;
@@ -36,7 +36,7 @@ public final class ObjectInputStream2 extends ObjectInputStream {
         } else {
             className = classes[classId].name;
         }
-        clazz = serializerPojo.classLoader.run(className);
+        clazz = serializerPojo.loadClass(className);
         final ObjectStreamClass descriptor = ObjectStreamClass.lookup(clazz);
 
         lastDescriptor = descriptor;
@@ -48,7 +48,7 @@ public final class ObjectInputStream2 extends ObjectInputStream {
     @Override
     protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
         if (desc == lastDescriptor) return lastDescriptorClass;
-        Class<?> clazz = serializerPojo.classLoader.run(desc.getName());
+        Class<?> clazz = serializerPojo.loadClass(desc.getName());
         if (clazz != null)
             return clazz;
         return super.resolveClass(desc);

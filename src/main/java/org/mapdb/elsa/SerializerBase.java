@@ -152,12 +152,34 @@ public class SerializerBase{
     protected final Deser[] headerDeser = new Deser[255];
 
     //TODO configurable class loader?
-    protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    static protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
-    protected Class<?> loadClass(String name) throws ClassNotFoundException {
+    static protected Class<?> loadClass(String name) throws ClassNotFoundException {
         return classLoader.loadClass(name);
     }
 
+
+    static protected Class loadClass2(DataInput is) throws IOException {
+        return loadClass2(is.readUTF());
+    }
+
+
+    static protected Class loadClass2(String name) throws IOException {
+        try {
+            return loadClass(name);
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
+    }
+
+
+    static protected Class loadClass3(String name){
+        try {
+            return loadClass2(name);
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+    }
     public SerializerBase(){
         initHeaderDeser();
         initSer();
@@ -1519,14 +1541,6 @@ public class SerializerBase{
         return singleton;
     }
 
-
-    protected Class loadClass2(DataInput is) throws IOException {
-        try {
-            return loadClass(is.readUTF());
-        } catch (ClassNotFoundException e) {
-            throw new IOException(e);
-        }
-    }
 
 
     private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {

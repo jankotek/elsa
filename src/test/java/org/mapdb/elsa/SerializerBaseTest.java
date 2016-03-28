@@ -489,26 +489,22 @@ public class SerializerBaseTest{
         return clone2(value,(Serializer<E>)Serializer.BASIC);
     }
 
-    /* clone value using serialization */
-    public static <E> E clone2(E value, Serializer<E> serializer) {
-        try{
-            DataIO.DataOutputByteArray out = new DataIO.DataOutputByteArray();
-            serializer.serialize(out, value);
-            DataIO.DataInputByteBuffer in = new DataIO.DataInputByteBuffer(ByteBuffer.wrap(out.copyBytes()), 0);
-
-            return serializer.deserialize(in,out.pos);
-        }catch(IOException ee){
-            throw new IOError(ee);
-        }
-    }
 
     public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
         @Override
         <E> E clone(E value) throws IOException {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Serializer.BASIC.serialize(new DataOutputStream(out), value);
+            ObjectOutputStream out2 = new ObjectOutputStream(out);
+            out2.writeObject(value);
+            out2.flush();
+            out2.close();
 
-            return (E) Serializer.BASIC.deserialize(new DataInputStream(new ByteArrayInputStream(out.toByteArray())),-1);
+            ObjectInputStream ins = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
+            try {
+                return (E) ins.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new IOException(e)
+            }
         }
     }
 
@@ -524,7 +520,7 @@ public class SerializerBaseTest{
             assertTrue("Value already used: " + value, !s.contains(value));
             s.add(value);
 
-            if(value!=SerializerBase.Header.POJO && value!=SerializerBase.Header.NAMED)
+            if(value!=SerializerBase.Header.POJO )
                 assertNotNull("deser does not contain value: "+value + " - "+f.getName(), b.headerDeser[value]);
 
         }
@@ -546,140 +542,6 @@ public class SerializerBaseTest{
         assertTrue(!s.isEmpty());
     }
 
-
-    @Test public void test_All_Serializer_Fields_Serializable() throws IllegalAccessException, IOException {
-        SerializerBase b = new SerializerBase();
-        for(Field f:Serializer.class.getDeclaredFields()){
-            Object a = f.get(null);
-            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
-            assertTrue("field: "+f.getName(),a == clone(a));
-            if("JAVA".equals(f.getName()))
-                continue;
-            assertTrue("field: "+f.getName(),((Serializer)a).isTrusted());
-            assertTrue("field: "+f.getName(),((Serializer)a).getBTreeKeySerializer(Fun.COMPARATOR).isTrusted());
-        }
-    }
-
-
-
-    @Test public void test_All_Fun_Fields_Serializable() throws IllegalAccessException, IOException {
-        SerializerBase b = new SerializerBase();
-        for(Field f:Fun.class.getDeclaredFields()){
-            Object a = f.get(null);
-            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
-            assertTrue("field: "+f.getName(),a == clone(a));
-        }
-    }
-
-
-    @Test public void test_All_BTreeKeySerializer_Fields_Serializable() throws IllegalAccessException, IOException {
-        SerializerBase b = new SerializerBase();
-        for(Field f:BTreeKeySerializer.class.getDeclaredFields()){
-            Object a = f.get(null);
-            assertTrue("field: "+f.getName(), b.mapdb_all.containsKey(a));
-            assertTrue("field: "+f.getName(),a == clone(a));
-
-            assertTrue("field: "+f.getName(),((BTreeKeySerializer)a).isTrusted());
-        }
-    }
-    @Test public void test_Named(){
-        File f = TT.tempDbFile();
-        DB db = DBMaker.fileDB(f).transactionDisable().make();
-        Map map = db.treeMap("map");
-
-        Map map2 = db.treeMap("map2");
-        map2.put("some","stuff");
-        map.put("map2_",map2);
-
-        Queue<Object> stack = db.getStack("stack");
-        stack.add("stack");
-        map.put("stack_",stack);
-
-        Atomic.Long along = db.atomicLong("along");
-        along.set(111L);
-        map.put("along_",along);
-
-        db.commit();
-        db.close();
-
-        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
-        map = db.treeMap("map");
-
-        map2 = (Map) map.get("map2_");
-        assertNotNull(map2);
-        assertEquals(map2.get("some"),"stuff");
-
-        stack = (Queue<Object>) map.get("stack_");
-        assertEquals("stack",stack.poll());
-
-        along = (Atomic.Long) map.get("along_");
-        assertEquals(111L,along.get());
-        db.close();
-        f.delete();
-    }
-
-    @Test public void test_atomic_ref_serializable(){
-        File f = TT.tempDbFile();
-        DB db = DBMaker.fileDB(f).transactionDisable().make();
-        Map map = db.treeMap("map");
-
-        long recid = db.getEngine().put(11L, Serializer.LONG);
-        Atomic.Long l = new Atomic.Long(db.getEngine(),recid);
-        map.put("long",l);
-
-        recid = db.getEngine().put(11, Serializer.INTEGER);
-        Atomic.Integer i = new Atomic.Integer(db.getEngine(),recid);
-        map.put("int",i);
-
-        recid = db.getEngine().put(true, Serializer.BOOLEAN);
-        Atomic.Boolean b = new Atomic.Boolean(db.getEngine(),recid);
-        map.put("bool",b);
-
-        recid = db.getEngine().put("aa", Serializer.STRING_NOSIZE);
-        Atomic.String s = new Atomic.String(db.getEngine(),recid);
-        map.put("str",s);
-
-        recid = db.getEngine().put("hovnocuc", db.getDefaultSerializer());
-        Atomic.Var v = new Atomic.Var(db.getEngine(),recid,db.getDefaultSerializer());
-        map.put("var",v);
-
-        db.commit();
-        db.close();
-        db = DBMaker.fileDB(f).transactionDisable().deleteFilesAfterClose().make();
-        map = db.treeMap("map");
-
-        l = (Atomic.Long) map.get("long");
-        assertEquals(11L, l.get());
-
-        i = (Atomic.Integer) map.get("int");
-        assertEquals(11, i.get());
-
-        b = (Atomic.Boolean) map.get("bool");
-        assertEquals(true, b.get());
-
-        s = (Atomic.String) map.get("str");
-        assertEquals("aa", s.get());
-
-        v = (Atomic.Var) map.get("var");
-        assertEquals("hovnocuc", v.get());
-        assertEquals(db.getDefaultSerializer(), v.serializer);
-        db.close();
-        f.delete();
-    }
-
-
-    @Test public void array_comparator() throws IOException {
-        Fun.ArrayComparator c = new Fun.ArrayComparator(new Comparator[]{Fun.REVERSE_COMPARATOR, Fun.COMPARATOR, Fun.COMPARATOR});
-        assertEquals(c,clone(c));
-    }
-
-
-
-    @Test public void object_stack_issue232_n2() throws IOException {
-        Integer i = 1;
-        Fun.Pair t = new Fun.Pair(i,i);
-        assertEquals(t,clone(t));
-    }
 
     Long one = 10000L;
     Long two = 20000L;
@@ -737,10 +599,6 @@ public class SerializerBaseTest{
         }
     }
 
-    @Test public void serializer_compression_wrapper() throws IOException {
-        Object o = new Serializer.CompressionWrapper(Serializer.LONG);
-        assertEquals(o, clone(o));
-    }
 
     @Test public void mapdb_singletons_equalent_after_clone() throws IOException {
         SerializerBase b = new SerializerBase();
@@ -751,19 +609,4 @@ public class SerializerBaseTest{
         }
     }
 
-    @Test public void db_object(){
-        DB db = DBMaker.memoryDB().transactionDisable().make();
-        Atomic.Var v = db.atomicVar("aa");
-        v.set(db);
-        assertEquals(db,v.get());
-        db.close();
-    }
-
-    @Test public void serializer_deflate_wrapper() throws IOException {
-        Serializer.CompressionDeflateWrapper c =
-                new Serializer.CompressionDeflateWrapper(Serializer.BYTE_ARRAY, -1,
-                        new byte[]{1,2,3,4,4,5,6,7,9,0,10});
-
-        assertEquals(c, clone(c));
-    }
 }

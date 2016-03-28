@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 public class SerializerPojo extends SerializerBase implements Serializable{
 
     private static final Logger LOG = Logger.getLogger(SerializerPojo.class.getName());
+    public static final ClassInfo[] EMPTY_CLASS_INFOS = new ClassInfo[0];
 
     static{
         String ver = System.getProperty("java.version");
@@ -41,65 +42,58 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             LOG.warning("Elsa POJO serialization might not work on JRockit JVM. See https://github.com/jankotek/mapdb/issues/572");
         }
     }
+//
+//    protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
+//
+//        @Override
+//		public void serialize(DataOutput out, ClassInfo ci) throws IOException {
+//            out.writeUTF(ci.name);
+//            out.writeBoolean(ci.isEnum);
+//            out.writeBoolean(ci.useObjectStream);
+//            if(ci.useObjectStream)
+//                return; //no fields
+//
+//            ElsaUtil.packInt(out, ci.fields.length);
+//            for (FieldInfo fi : ci.fields) {
+//                out.writeUTF(fi.name);
+//                out.writeBoolean(fi.primitive);
+//                out.writeUTF(fi.type);
+//            }
+//        }
+//
+//        @Override
+//		public ClassInfo deserialize(DataInput in, int available) throws IOException{
+//            String className = in.readUTF();
+//            Class clazz = null;
+//            boolean isEnum = in.readBoolean();
+//            boolean isExternalizable = in.readBoolean();
+//
+//            int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
+//            FieldInfo[] fields = new FieldInfo[fieldsNum];
+//            for (int j = 0; j < fieldsNum; j++) {
+//                String fieldName = in.readUTF();
+//                boolean primitive = in.readBoolean();
+//                String type = in.readUTF();
+//                if(clazz == null)
+//                    clazz = classLoader.run(className);
+//
+//                fields[j] = new FieldInfo(fieldName,
+//                        type,
+//                        primitive?null:classLoader.run(type),
+//                        clazz);
+//            }
+//            return new ClassInfo(className, fields,isEnum,isExternalizable);
+//        }
+//
+//        @Override
+//        public boolean isTrusted() {
+//            return true;
+//        }
+//
+//
+//    };
+    private static final long serialVersionUID = 1290400014981859025L;
 
-    protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
-
-        @Override
-		public void serialize(DataOutput out, ClassInfo ci) throws IOException {
-            out.writeUTF(ci.name);
-            out.writeBoolean(ci.isEnum);
-            out.writeBoolean(ci.useObjectStream);
-            if(ci.useObjectStream)
-                return; //no fields
-
-            ElsaUtil.packInt(out, ci.fields.length);
-            for (FieldInfo fi : ci.fields) {
-                out.writeUTF(fi.name);
-                out.writeBoolean(fi.primitive);
-                out.writeUTF(fi.type);
-            }
-        }
-
-        @Override
-		public ClassInfo deserialize(DataInput in, int available) throws IOException{
-            String className = in.readUTF();
-            Class clazz = null;
-            boolean isEnum = in.readBoolean();
-            boolean isExternalizable = in.readBoolean();
-
-            int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
-            FieldInfo[] fields = new FieldInfo[fieldsNum];
-            for (int j = 0; j < fieldsNum; j++) {
-                String fieldName = in.readUTF();
-                boolean primitive = in.readBoolean();
-                String type = in.readUTF();
-                if(clazz == null)
-                    clazz = classLoader.run(className);
-
-                fields[j] = new FieldInfo(fieldName,
-                        type,
-                        primitive?null:classLoader.run(type),
-                        clazz);
-            }
-            return new ClassInfo(className, fields,isEnum,isExternalizable);
-        }
-
-        @Override
-        public boolean isTrusted() {
-            return true;
-        }
-
-
-    };
-    private static final long serialVersionUID = 3181417366609199703L;
-
-    protected static final Fun.Function1<Class, String> DEFAULT_CLASS_LOADER = new Fun.Function1<Class, String>() {
-        @Override
-        public Class run(String className) {
-            ClassLoader loader =  Thread.currentThread().getContextClassLoader();
-            return classForName(className, loader);
-        }
-    };
 
     protected static Class classForName(String className, ClassLoader loader) {
         try {
@@ -109,32 +103,16 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
     }
 
+    protected ClassInfo getClassInfo(int classId){
+        return null;
+    }
 
-    protected final Fun.Function0<ClassInfo[]> getClassInfos;
-    protected final Fun.Function1Int<ClassInfo> getClassInfo;
-    protected final Fun.Function1<Void,String> notifyMissingClassInfo;
-    protected final Fun.Function1<Class, String> classLoader;
+    protected ClassInfo[] getClassInfos(){
+        return EMPTY_CLASS_INFOS;
+    }
 
+    protected void notifyMissingClassInfo(String className){
 
-    public SerializerPojo(
-            Fun.Function1Int<ClassInfo> getClassInfo,
-            Fun.Function0<ClassInfo[]> getClassInfos,
-            Fun.Function1<Void, String> notifyMissingClassInfo,
-            Fun.Function1<Class, String> classLoader){
-        this.classLoader = classLoader!=null? classLoader : DEFAULT_CLASS_LOADER;
-        this.engine = engine;
-        this.getClassInfo = getClassInfo!=null?getClassInfo:new Fun.Function1Int<ClassInfo>() {
-            @Override public ClassInfo run(int a) {
-                return null;
-            }
-        };
-        this.getClassInfos = getClassInfos!=null?getClassInfos:new Fun.Function0<ClassInfo[]>() {
-            @Override
-            public ClassInfo[] run() {
-                return new ClassInfo[0];
-            }
-        };
-        this.notifyMissingClassInfo = notifyMissingClassInfo;
     }
 
 
@@ -301,7 +279,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
     public ClassInfo makeClassInfo(String className){
-        Class clazz = classLoader.run(className);
+        Class clazz = loadClass3(className);
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
@@ -311,7 +289,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             fields[i] = new FieldInfo(
                     sf.getName(),
                     type,
-                    sf.isPrimitive() ? null : classLoader.run(type),
+                    sf.isPrimitive() ? null : loadClass3(type),
                     clazz);
         }
 
@@ -443,7 +421,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         out.write(Header.POJO);
 
-        ClassInfo[] classes = getClassInfos.run();
+        ClassInfo[] classes = getClassInfos();
         assertClassSerializable(classes,obj.getClass());
         //write class header
         int classId = classToId(classes,obj.getClass().getName());
@@ -453,8 +431,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out, classes);
             out2.writeObject(obj);
             //and notify listeners about missing class
-            if(notifyMissingClassInfo!=null)
-                notifyMissingClassInfo.run(obj.getClass().getName());
+            notifyMissingClassInfo(obj.getClass().getName());
             return;
         }
 
@@ -514,18 +491,18 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             throw new ElsaException("wrong header");
         try {
             int classId = ElsaUtil.unpackInt(in);
-            ClassInfo classInfo = getClassInfo.run(classId);
+            ClassInfo classInfo = getClassInfo(classId);
 
             //is unknown Class or uses specialized serialization
             if (classId == -1 || classInfo.useObjectStream) {
                 //deserialize using object stream
-                ObjectInputStream2 in2 = new ObjectInputStream2(this, in, getClassInfos.run());
+                ObjectInputStream2 in2 = new ObjectInputStream2(this, in, getClassInfos());
                 Object o = in2.readObject();
                 objectStack.add(o);
                 return o;
             }
 
-            Class<?> clazz = classLoader.run(classInfo.name);
+            Class<?> clazz = loadClass(classInfo.name);
             if (!Serializable.class.isAssignableFrom(clazz))
                 throw new NotSerializableException(clazz.getName());
 
@@ -564,7 +541,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class<?> clazz = DEFAULT_CLASS_LOADER.run("sun.reflect.ReflectionFactory");
+            Class<?> clazz = loadClass3("sun.reflect.ReflectionFactory");
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
