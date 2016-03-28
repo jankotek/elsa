@@ -50,7 +50,7 @@ public class SerializerBase{
          * @return deserialized object
          * @throws java.io.IOException
          */
-        abstract public Object deserialize(DataInput in,  FastArrayList objectStack)
+        abstract public A deserialize(DataInput in,  FastArrayList objectStack)
                 throws IOException;
 
         public boolean needsObjectStack(){
@@ -73,21 +73,6 @@ public class SerializerBase{
         }
     }
 
-
-    protected static final class DeserSerializer extends Deser {
-        private final Serializer serializer;
-
-        public DeserSerializer(Serializer serializer) {
-            if(serializer==null)
-                throw new NullPointerException();
-            this.serializer = serializer;
-        }
-
-        @Override
-        public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-            return serializer.deserialize(in,-1);
-        }
-    }
 
     protected static final class DeserStringLen extends Deser{
         final int len;
@@ -161,34 +146,24 @@ public class SerializerBase{
             out.write(header);
         }
     }
-    protected static final class SerHeaderSerializer implements Ser{
-
-        final byte header;
-        final Serializer serializer;
-
-        public SerHeaderSerializer(int header, Serializer serializer) {
-            if(serializer==null)
-                throw new NullPointerException();
-            this.header = (byte) header;
-            this.serializer = serializer;
-        }
-
-        @Override
-        public void serialize(DataOutput out, Object value, FastArrayList objectStack) throws IOException {
-            out.write(header);
-            serializer.serialize(out,value);
-        }
-    }
 
     protected final Map<Class, Ser> ser = new IdentityHashMap<Class, Ser>();
 
     protected final Deser[] headerDeser = new Deser[255];
+
+    //TODO configurable class loader?
+    protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+
+    protected Class<?> loadClass(String name) throws ClassNotFoundException {
+        return classLoader.loadClass(name);
+    }
 
     public SerializerBase(){
         initHeaderDeser();
         initSer();
         initMapdb();
     }
+
 
     protected void initSer() {
         ser.put(Integer.class, SER_INT);
@@ -203,25 +178,98 @@ public class SerializerBase{
         ser.put(Byte.class, SER_BYTE);
 
         ser.put(byte[].class, SER_BYTE_ARRAY);
-        ser.put(boolean[].class, new SerHeaderSerializer(Header.ARRAY_BOOLEAN, Serializer.BOOLEAN_ARRAY));
-        ser.put(short[].class, new SerHeaderSerializer(Header.ARRAY_SHORT, Serializer.SHORT_ARRAY));
-        ser.put(char[].class, new SerHeaderSerializer(Header.ARRAY_CHAR, Serializer.CHAR_ARRAY));
-        ser.put(float[].class, new SerHeaderSerializer(Header.ARRAY_FLOAT, Serializer.FLOAT_ARRAY));
-        ser.put(double[].class, new SerHeaderSerializer(Header.ARRAY_DOUBLE, Serializer.DOUBLE_ARRAY));
+        ser.put(boolean[].class, new Ser<boolean[]>() {
+            @Override
+            public void serialize(DataOutput out, boolean[] value, FastArrayList objectStack) throws IOException {
+                out.write(Header.ARRAY_BOOLEAN);
+                ElsaUtil.packInt(out, value.length);//write the number of booleans not the number of bytes
+                SerializerBase.writeBooleanArray(out,value);
+            }
+        });
+        ser.put(char[].class, new Ser<char[]>() {
+            @Override
+            public void serialize(DataOutput out, char[] value, FastArrayList objectStack) throws IOException {
+                out.write(Header.ARRAY_CHAR);
+                ElsaUtil.packInt(out,value.length);
+                for(char v:value){
+                    ElsaUtil.packInt(out,v);
+                }
+            }
+        });
+        ser.put(short[].class, new Ser<short[]>() {
+            @Override
+            public void serialize(DataOutput out, short[] value, FastArrayList objectStack) throws IOException {
+                out.write(Header.ARRAY_SHORT);
+                ElsaUtil.packInt(out,value.length);
+                for(short v:value){
+                    out.writeShort(v);
+                }
+            }
+        });
+        ser.put(float[].class, new Ser<float[]>() {
+            @Override
+            public void serialize(DataOutput out, float[] value, FastArrayList objectStack) throws IOException {
+                out.write(Header.ARRAY_FLOAT);
+                ElsaUtil.packInt(out,value.length);
+                for(float v:value){
+                    out.writeFloat(v);
+                }
+            }
+        });
+        ser.put(double[].class, new Ser<double[]>() {
+            @Override
+            public void serialize(DataOutput out, double[] value, FastArrayList objectStack) throws IOException {
+                out.write(Header.ARRAY_DOUBLE);
+                ElsaUtil.packInt(out,value.length);
+                for(double v:value){
+                    out.writeDouble(v);
+                }
+            }
+        });
         ser.put(int[].class, SER_INT_ARRAY);
         ser.put(long[].class, SER_LONG_ARRAY);
 
-        ser.put(BigInteger.class, new SerHeaderSerializer(Header.BIGINTEGER,Serializer.BIG_INTEGER));
-        ser.put(BigDecimal.class, new SerHeaderSerializer(Header.BIGDECIMAL,Serializer.BIG_DECIMAL));
-        ser.put(Class.class, new SerHeaderSerializer(Header.CLASS,Serializer.CLASS));
-        ser.put(Date.class, new SerHeaderSerializer(Header.DATE,Serializer.DATE));
-        ser.put(UUID.class, new SerHeaderSerializer(Header.UUID,Serializer.UUID));
+        ser.put(BigInteger.class, new Ser<BigInteger>() {
+            @Override
+            public void serialize(DataOutput out, BigInteger value, FastArrayList objectStack) throws IOException {
+                out.write(Header.BIGINTEGER);
+                SER_BYTE_ARRAY.serialize(out,value.toByteArray(),objectStack);
+            }
+        });
 
-        ser.put(Atomic.Long.class, SER_MA_LONG);
-        ser.put(Atomic.Integer.class, SER_MA_INT);
-        ser.put(Atomic.Boolean.class, SER_MA_BOOL);
-        ser.put(Atomic.String.class, SER_MA_STRING);
-        ser.put(Atomic.Var.class, SER_MA_VAR);
+        ser.put(BigDecimal.class, new Ser<BigDecimal>() {
+            @Override
+            public void serialize(DataOutput out, BigDecimal value, FastArrayList objectStack) throws IOException {
+                out.write(Header.BIGDECIMAL);
+                SER_BYTE_ARRAY.serialize(out,value.unscaledValue().toByteArray(),objectStack);
+                ElsaUtil.packInt(out, value.scale());
+            }
+        });
+
+        ser.put(Class.class, new Ser<Class<?>>(){
+            @Override
+            public void serialize(DataOutput out, Class<?> value, FastArrayList objectStack) throws IOException {
+                out.write(Header.CLASS);
+                out.writeUTF(value.getName());
+            }
+        });
+
+        ser.put(Date.class, new Ser<Date>(){
+            @Override
+            public void serialize(DataOutput out, Date value, FastArrayList objectStack) throws IOException {
+                out.write(Header.DATE);
+                out.writeLong(value.getTime());
+            }
+        });
+
+        ser.put(UUID.class, new Ser<UUID>(){
+            @Override
+            public void serialize(DataOutput out, UUID value, FastArrayList objectStack) throws IOException {
+                out.write(Header.UUID);
+                out.writeLong(value.getMostSignificantBits());
+                out.writeLong(value.getLeastSignificantBits());
+            }
+        });
 
         ser.put(Object[].class, new Ser<Object[]>(){
 
@@ -304,90 +352,6 @@ public class SerializerBase{
                 }
             }
         });
-
-        ser.put(Fun.Pair.class, new Ser<Fun.Pair>(){
-            @Override
-            public void serialize(DataOutput out, Fun.Pair value, FastArrayList objectStack) throws IOException {
-                out.write(Header.PAIR);
-                SerializerBase.this.serialize(out, value.a, objectStack);
-                SerializerBase.this.serialize(out, value.b, objectStack);
-            }
-        });
-
-        ser.put(BTreeKeySerializer.BasicKeySerializer.class, new Ser<BTreeKeySerializer.BasicKeySerializer>(){
-            @Override
-            public void serialize(DataOutput out, BTreeKeySerializer.BasicKeySerializer value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER);
-                SerializerBase.this.serialize(out, value.serializer, objectStack);
-                SerializerBase.this.serialize(out, value.comparator, objectStack);
-            }
-        });
-
-        ser.put(Fun.ArrayComparator.class, new Ser<Fun.ArrayComparator>(){
-            @Override
-            public void serialize(DataOutput out, Fun.ArrayComparator value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.COMPARATOR_ARRAY);
-                SerializerBase.this.serialize(out, value.comparators,objectStack);
-            }
-        });
-
-        ser.put(CompressionWrapper.class, new Ser<CompressionWrapper>(){
-            @Override
-            public void serialize(DataOutput out, CompressionWrapper value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, value.compressValues ?
-                        HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER2 :
-                        HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER); //this is old option, kept for backward compatibility
-                SerializerBase.this.serialize(out, value.serializer,objectStack);
-            }
-        });
-
-        ser.put(CompressionDeflateWrapper.class, new Ser<CompressionDeflateWrapper>(){
-            @Override
-            public void serialize(DataOutput out, CompressionDeflateWrapper value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.SERIALIZER_COMPRESSION_DEFLATE_WRAPPER);
-                SerializerBase.this.serialize(out, value.serializer, objectStack);
-                out.writeByte(value.compressLevel);
-                ElsaUtil.packInt(out, value.dictionary==null? 0 : value.dictionary.length);
-                if(value.dictionary!=null && value.dictionary.length>0)
-                    out.write(value.dictionary);
-            }
-        });
-        ser.put(Array.class, new Ser<Array>(){
-            @Override
-            public void serialize(DataOutput out, Array value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.SERIALIZER_ARRAY);
-                SerializerBase.this.serialize(out, value.serializer,objectStack);
-            }
-        });
-
-        ser.put(BTreeKeySerializer.Compress.class, new Ser< BTreeKeySerializer.Compress>(){
-            @Override
-            public void serialize(DataOutput out, BTreeKeySerializer.Compress value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.B_TREE_COMPRESS_KEY_SERIALIZER);
-                SerializerBase.this.serialize(out, value.wrapped,objectStack);
-            }
-        });
-
-        ser.put(BTreeKeySerializer.ArrayKeySerializer.class, new Ser<BTreeKeySerializer.ArrayKeySerializer>(){
-
-            @Override
-            public void serialize(DataOutput out, BTreeKeySerializer.ArrayKeySerializer value, FastArrayList objectStack) throws IOException {
-                out.write(Header.MAPDB);
-                ElsaUtil.packInt(out, HeaderMapDB.B_TREE_ARRAY_SERIALIZER);
-                ElsaUtil.packInt(out,value.tsize);
-                for(int i=0;i<value.tsize;i++){
-                    SerializerBase.this.serialize(out, value.comparators[i],objectStack);
-                    SerializerBase.this.serialize(out, value.serializers[i],objectStack);
-                }
-            }
-        });
-
         //TODO object stack handling is probably all broken. write paranoid tests!!!
         //TODO write automated test to check if static classes inside BTreeKeySer.. .and other can be serialized
     }
@@ -524,13 +488,48 @@ public class SerializerBase{
 
         headerDeser[Header.STRING_0] = new DeserSingleton("");
 
-        headerDeser[Header.INT] = new DeserSerializer(Serializer.INTEGER);
-        headerDeser[Header.LONG] = new DeserSerializer(Serializer.LONG);
-        headerDeser[Header.CHAR] = new DeserSerializer(Serializer.CHAR);
-        headerDeser[Header.SHORT] = new DeserSerializer(Serializer.SHORT);
-        headerDeser[Header.FLOAT] = new DeserSerializer(Serializer.FLOAT);
-        headerDeser[Header.DOUBLE] = new DeserSerializer(Serializer.DOUBLE);
-        headerDeser[Header.BYTE] = new DeserSerializer(Serializer.BYTE);
+        headerDeser[Header.INT] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readInt();
+            }
+        };
+        headerDeser[Header.LONG] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readLong();
+            }
+        };
+        headerDeser[Header.CHAR] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readChar();
+            }
+        };
+        headerDeser[Header.SHORT] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readShort();
+            }
+        };
+        headerDeser[Header.FLOAT] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readFloat();
+            }
+        };
+        headerDeser[Header.DOUBLE] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readDouble();
+            }
+        };
+        headerDeser[Header.BYTE] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return in.readByte();
+            }
+        };
 
         headerDeser[Header.STRING] = new Deser(){
             @Override
@@ -597,41 +596,6 @@ public class SerializerBase{
             }
         };
 
-        headerDeser[Header.MA_LONG] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Atomic.Long(getEngine(),ElsaUtil.unpackLong(in));
-            }
-        };
-
-        headerDeser[Header.MA_INT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Atomic.Integer(getEngine(),ElsaUtil.unpackLong(in));
-            }
-        };
-
-        headerDeser[Header.MA_BOOL] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Atomic.Boolean(getEngine(),ElsaUtil.unpackLong(in));
-            }
-        };
-
-        headerDeser[Header.MA_STRING] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Atomic.String(getEngine(),ElsaUtil.unpackLong(in));
-            }
-        };
-
-        headerDeser[Header.MA_VAR] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Atomic.Var(getEngine(), SerializerBase.this,in, objectStack);
-            }
-
-            @Override
-            public boolean needsObjectStack() {
-                return true;
-            }
-        };
-
         headerDeser[Header.ARRAY_BYTE_ALL_EQUAL] = new Deser(){
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
                 byte[] b = new byte[ElsaUtil.unpackInt(in)];
@@ -640,13 +604,81 @@ public class SerializerBase{
             }
         };
 
-        headerDeser[Header.ARRAY_BOOLEAN] = new DeserSerializer(Serializer.BOOLEAN_ARRAY);
-        headerDeser[Header.ARRAY_INT] = new DeserSerializer(Serializer.INT_ARRAY);
-        headerDeser[Header.ARRAY_SHORT] = new DeserSerializer(Serializer.SHORT_ARRAY);
-        headerDeser[Header.ARRAY_DOUBLE] = new DeserSerializer(Serializer.DOUBLE_ARRAY);
-        headerDeser[Header.ARRAY_FLOAT]= new DeserSerializer(Serializer.FLOAT_ARRAY);
-        headerDeser[Header.ARRAY_CHAR]= new DeserSerializer(Serializer.CHAR_ARRAY);
-        headerDeser[Header.ARRAY_BYTE]= new DeserSerializer(Serializer.BYTE_ARRAY);
+        headerDeser[Header.ARRAY_BOOLEAN] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                return SerializerBase.readBooleanArray(size, in);
+            }
+        };
+        headerDeser[Header.ARRAY_INT] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                int[] ret = new int[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = in.readInt();
+                }
+                return ret;
+            }
+        };
+
+        headerDeser[Header.ARRAY_LONG] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                long[] ret = new long[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = in.readLong();
+                }
+                return ret;
+            }
+        };
+        headerDeser[Header.ARRAY_SHORT] =  new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                short[] ret = new short[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = in.readShort();
+                }
+                return ret;
+            }
+        };
+        headerDeser[Header.ARRAY_DOUBLE] =  new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                double[] ret = new double[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = in.readDouble();
+                }
+                return ret;
+            }
+        };
+        headerDeser[Header.ARRAY_FLOAT]=  new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                float[] ret = new float[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = in.readFloat();
+                }
+                return ret;
+            }
+        };
+        headerDeser[Header.ARRAY_CHAR]= new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int size = ElsaUtil.unpackInt(in);
+                char[] ret = new char[size];
+                for(int i=0;i<size;i++){
+                    ret[i] = (char)ElsaUtil.unpackInt(in);
+                }
+                return ret;
+            }
+        };
+        headerDeser[Header.ARRAY_BYTE]= DESER_BYTE_ARRAY;
 
         headerDeser[Header.ARRAY_INT_BYTE] = new Deser(){
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
@@ -713,18 +745,47 @@ public class SerializerBase{
             }
         };
 
-
-        headerDeser[Header.ARRAY_LONG] = new DeserSerializer(Serializer.LONG_ARRAY);
-        headerDeser[Header.BIGINTEGER] = new DeserSerializer(Serializer.BIG_INTEGER);
-        headerDeser[Header.BIGDECIMAL] = new DeserSerializer(Serializer.BIG_DECIMAL);
-        headerDeser[Header.CLASS] = new DeserSerializer(Serializer.CLASS);
-        headerDeser[Header.DATE] = new DeserSerializer(Serializer.DATE);
-        headerDeser[Header.UUID] = new DeserSerializer(Serializer.UUID);
+        headerDeser[Header.BIGINTEGER] = new Deser(){
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return new BigInteger(DESER_BYTE_ARRAY.deserialize(in,objectStack));
+            }
+        };
+        headerDeser[Header.BIGDECIMAL] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return new BigDecimal(new BigInteger(
+                        DESER_BYTE_ARRAY.deserialize(in,objectStack)),
+                        ElsaUtil.unpackInt(in));
+            }
+        };
+        headerDeser[Header.CLASS] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                try {
+                    return loadClass(in.readUTF());
+                } catch (ClassNotFoundException e) {
+                    throw new IOException(e);
+                }
+            }
+        };
+        headerDeser[Header.DATE] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return new Date(in.readLong());
+            }
+        };
+        headerDeser[Header.UUID] = new Deser() {
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                return new UUID(in.readLong(), in.readLong());
+            }
+        };
 
         headerDeser[Header.ARRAY_OBJECT_ALL_NULL] = new Deser(){
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
-                Class clazz = deserializeClass(in);
+                Class clazz = loadClass2(in);
                 return java.lang.reflect.Array.newInstance(clazz, size);
             }
         };
@@ -732,7 +793,7 @@ public class SerializerBase{
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
                 //TODO serializatio code for this does not exist, add it in future
                 int size = ElsaUtil.unpackInt(in);
-                Class clazz = deserializeClass(in);
+                Class clazz = loadClass2(in);
                 Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
                 for (int i = 0; i < size; i++){
                     s[i] = SerializerBase.this.deserialize(in, null);
@@ -842,24 +903,17 @@ public class SerializerBase{
             }
         };
 
-        headerDeser[Header.PAIR] = new Deser() {
+
+        headerDeser[Header.SINGLETON] = new Deser() {
             @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return new Fun.Pair(SerializerBase.this, in, objectStack);
+                return deserializeSingleton(in,objectStack);
             }
             @Override public boolean needsObjectStack() {
+                //TODO singleton should not need object stack
                 return true;
             }
         };
 
-
-        headerDeser[Header.MAPDB] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return deserializeMapDB(in,objectStack);
-            }
-            @Override public boolean needsObjectStack() {
-                return true;
-            }
-        };
 
         headerDeser[Header.INT_MF3] = new DeserInt(3,true);
         headerDeser[ Header.INT_F3] = new DeserInt(3,false);
@@ -940,8 +994,6 @@ public class SerializerBase{
 
 
 
-
-    @Override
     public void serialize(final DataOutput out, final Object obj) throws IOException {
         serialize(out, obj, new FastArrayList<Object>());
     }
@@ -976,16 +1028,10 @@ public class SerializerBase{
             return;
         }
 
-        if(obj == SerializerBase.this){
-            out.write(Header.MAPDB);
-            out.write(HeaderMapDB.THIS_SERIALIZER);
-            return;
-        }
-
         //try mapdb singletons
         final Integer mapdbSingletonHeader = mapdb_all.get(obj);
         if(mapdbSingletonHeader!=null){
-            out.write(Header.MAPDB);
+            out.write(Header.SINGLETON);
             ElsaUtil.packInt(out, mapdbSingletonHeader);
             return;
         }
@@ -1191,6 +1237,7 @@ public class SerializerBase{
             }
         }
     };
+
     protected static final Ser SER_BOOLEAN = new Ser<Boolean>() {
         @Override
         public void serialize(DataOutput out, Boolean value, FastArrayList objectStack) throws IOException {
@@ -1311,45 +1358,6 @@ public class SerializerBase{
         }
     };
 
-    protected static final Ser SER_MA_LONG  = new Ser<Atomic.Long>(){
-        @Override public void serialize(DataOutput out, Atomic.Long value, FastArrayList objectStack) throws IOException {
-            out.write(Header.MA_LONG);
-            ElsaUtil.packLong(out,value.recid);
-        }
-    };
-
-    protected static final Ser SER_MA_INT  = new Ser<Atomic.Integer>(){
-        @Override public void serialize(DataOutput out, Atomic.Integer value, FastArrayList objectStack) throws IOException {
-            out.write(Header.MA_INT);
-            ElsaUtil.packLong(out,value.recid);
-        }
-    };
-
-    protected static final Ser SER_MA_BOOL  = new Ser<Atomic.Boolean>(){
-        @Override public void serialize(DataOutput out, Atomic.Boolean value, FastArrayList objectStack) throws IOException {
-            out.write(Header.MA_BOOL);
-            ElsaUtil.packLong(out,value.recid);
-        }
-    };
-
-    protected static final Ser SER_MA_STRING  = new Ser<Atomic.String>(){
-        @Override public void serialize(DataOutput out, Atomic.String value, FastArrayList objectStack) throws IOException {
-            out.write(Header.MA_STRING);
-            ElsaUtil.packLong(out,value.recid);
-        }
-    };
-
-    protected  final Ser SER_MA_VAR  = new Ser<Atomic.Var>(){
-
-        @Override
-        public void serialize(DataOutput out, Atomic.Var value, FastArrayList objectStack) throws IOException {
-            out.write(Header.MA_VAR);
-            ElsaUtil.packLong(out,value.recid);
-            SerializerBase.this.serialize(out,value.serializer,objectStack);
-        }
-
-    };
-
     protected void serializeClass(DataOutput out, Class clazz) throws IOException {
         //TODO override in SerializerPojo
         out.writeUTF(clazz.getName());
@@ -1400,6 +1408,17 @@ public class SerializerBase{
         }
     };
 
+
+    protected static final Deser<byte[]> DESER_BYTE_ARRAY = new Deser() {
+        @Override
+        public byte[] deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            int size = ElsaUtil.unpackInt(in);
+            byte[] ret = new byte[size];
+            in.readFully(ret);
+            return ret;
+        }
+    };;
+
     static String deserializeString(DataInput buf, int len) throws IOException {
         char[] b = new char[len];
         for (int i = 0; i < len; i++)
@@ -1409,7 +1428,6 @@ public class SerializerBase{
     }
 
 
-    @Override
     public Object deserialize(DataInput in, int capacity) throws IOException {
         if(capacity==0) return null;
         return deserialize(in, new FastArrayList<Object>());
@@ -1453,7 +1471,9 @@ public class SerializerBase{
 
 
         protected final Map<Object,Integer> mapdb_all = new IdentityHashMap<Object, Integer>();
-        protected final Store.LongObjectMap<Object> mapdb_reverse = new Store.LongObjectMap<Object>();
+
+        //TODO use primitive int map
+        protected final Map<Integer,Object> mapdb_reverse = new HashMap<Integer, Object>();
 
         protected void initMapdb(){
 
@@ -1462,176 +1482,8 @@ public class SerializerBase{
              *   Code bellow defines storage format, do not modify!!!
              * !!!! IMPORTANT !!!!
              */
+                //TODO call map_add(1,SINGLETON) to add singletons
 
-            mapdb_add(1, BTreeKeySerializer.STRING);
-            mapdb_add(2, BTreeKeySerializer.STRING2);
-            mapdb_add(3, BTreeKeySerializer.LONG);
-            mapdb_add(4, BTreeKeySerializer.INTEGER);
-            mapdb_add(5, BTreeKeySerializer.UUID);
-
-            mapdb_add(6, Fun.COMPARATOR);
-
-            mapdb_add(7, Fun.REVERSE_COMPARATOR);
-            mapdb_add(8, Fun.EMPTY_ITERATOR);
-            mapdb_add(9, Fun.PLACEHOLDER);
-
-            mapdb_add(10, Serializer.STRING_NOSIZE);
-            mapdb_add(11, Serializer.STRING_ASCII);
-            mapdb_add(12, Serializer.STRING_INTERN);
-            mapdb_add(13, Serializer.LONG);
-            mapdb_add(14, Serializer.INTEGER);
-            mapdb_add(15, Serializer.ILLEGAL_ACCESS);
-            mapdb_add(16, Serializer.BASIC);
-            mapdb_add(17, Serializer.BOOLEAN);
-            mapdb_add(18, Serializer.BYTE_ARRAY_NOSIZE);
-            mapdb_add(19, Serializer.BYTE_ARRAY);
-            mapdb_add(20, Serializer.JAVA);
-            mapdb_add(21, Serializer.UUID);
-            mapdb_add(22, Serializer.STRING);
-            mapdb_add(23, Serializer.CHAR_ARRAY);
-            mapdb_add(24, Serializer.INT_ARRAY);
-            mapdb_add(25, Serializer.LONG_ARRAY);
-            mapdb_add(26, Serializer.DOUBLE_ARRAY);
-
-            mapdb_add(34, Fun.BYTE_ARRAY_COMPARATOR);
-            mapdb_add(35, Fun.CHAR_ARRAY_COMPARATOR);
-            mapdb_add(36, Fun.INT_ARRAY_COMPARATOR);
-            mapdb_add(37, Fun.LONG_ARRAY_COMPARATOR);
-            mapdb_add(38, Fun.DOUBLE_ARRAY_COMPARATOR);
-            mapdb_add(39, Fun.COMPARABLE_ARRAY_COMPARATOR);
-            mapdb_add(40, Fun.RECORD_ALWAYS_TRUE);
-
-            mapdb_add(41, BTreeKeySerializer.ARRAY2);
-            mapdb_add(42, BTreeKeySerializer.ARRAY3);
-            mapdb_add(43, BTreeKeySerializer.ARRAY4);
-
-            mapdb_add(44, Serializer.CHAR);
-            mapdb_add(45, Serializer.BYTE);
-            mapdb_add(46, Serializer.FLOAT);
-            mapdb_add(47, Serializer.DOUBLE);
-            mapdb_add(48, Serializer.SHORT);
-
-            mapdb_add(49, Serializer.BOOLEAN_ARRAY);
-            mapdb_add(50, Serializer.SHORT_ARRAY);
-            mapdb_add(51, Serializer.FLOAT_ARRAY);
-
-            mapdb_add(52, Serializer.BIG_INTEGER);
-            mapdb_add(53, Serializer.BIG_DECIMAL);
-            mapdb_add(54, Serializer.CLASS);
-            mapdb_add(55, Serializer.DATE);
-
-            //56
-            mapdb_add(HeaderMapDB.B_TREE_ARRAY_SERIALIZER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new BTreeKeySerializer.ArrayKeySerializer(SerializerBase.this, in, objectStack);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-            //57
-            mapdb_add(HeaderMapDB.THIS_SERIALIZER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return SerializerBase.this;
-                }
-            });
-
-            //58
-            mapdb_add(HeaderMapDB.B_TREE_BASIC_KEY_SERIALIZER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new BTreeKeySerializer.BasicKeySerializer(SerializerBase.this, in, objectStack);
-                }
-            });
-
-            //59
-            mapdb_add(HeaderMapDB.COMPARATOR_ARRAY, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new Fun.ArrayComparator(SerializerBase.this, in, objectStack);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-
-            //60
-            mapdb_add(HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new CompressionWrapper(SerializerBase.this, in, objectStack,false);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-
-            mapdb_add(61, BTreeKeySerializer.BASIC);
-            mapdb_add(62, BTreeKeySerializer.BYTE_ARRAY);
-            mapdb_add(63, BTreeKeySerializer.BYTE_ARRAY2);
-
-            //64
-            mapdb_add(HeaderMapDB.B_TREE_COMPRESS_KEY_SERIALIZER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new BTreeKeySerializer.Compress(SerializerBase.this, in, objectStack);
-                }
-            });
-            //65
-            mapdb_add(HeaderMapDB.SERIALIZER_ARRAY, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new Array(SerializerBase.this, in, objectStack);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-
-            mapdb_add(66, Serializer.RECID);
-            mapdb_add(67, Serializer.LONG_PACKED);
-//            mapdb_add(68, Serializer.LONG_PACKED_ZIGZAG);
-            mapdb_add(69, Serializer.INTEGER_PACKED);
-//            mapdb_add(70, Serializer.INTEGER_PACKED_ZIGZAG);
-            mapdb_add(71, Serializer.RECID_ARRAY);
-
-            //72
-            mapdb_add(HeaderMapDB.SERIALIZER_COMPRESSION_DEFLATE_WRAPPER, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new CompressionDeflateWrapper(SerializerBase.this, in, objectStack);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-
-            //73
-            mapdb_add(HeaderMapDB.SERIALIZER_COMPRESSION_WRAPPER2, new Deser() {
-                @Override
-                public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                    return new CompressionWrapper(SerializerBase.this, in, objectStack,true);
-                }
-
-                @Override
-                public boolean needsObjectStack() {
-                    return true;
-                }
-            });
-
-            mapdb_add(74, Serializer.STRING_XXHASH);
         }
 
 
@@ -1652,7 +1504,7 @@ public class SerializerBase{
     }
 
 
-    protected Object deserializeMapDB(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    protected Object deserializeSingleton(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int head = ElsaUtil.unpackInt(is);
 
         Object singleton = mapdb_reverse.get(head);
@@ -1667,22 +1519,19 @@ public class SerializerBase{
         return singleton;
     }
 
-    protected Engine getEngine(){
-        throw new UnsupportedOperationException();
+
+    protected Class loadClass2(DataInput is) throws IOException {
+        try {
+            return loadClass(is.readUTF());
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
-
-
-    protected Class deserializeClass(DataInput is) throws IOException {
-        return SerializerPojo.DEFAULT_CLASS_LOADER.run(is.readUTF());
-    }
-
-
-
 
 
     private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
-        Class clazz = deserializeClass(is);
+        Class clazz = loadClass2(is);
         Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
         objectStack.add(s);
         for (int i = 0; i < size; i++){
@@ -1802,7 +1651,7 @@ public class SerializerBase{
     }
     /** override this method to extend SerializerBase functionality*/
     protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
-        throw new DBException.DataCorruption("Unknown serialization header: " + head);
+        throw new IOException("Unknown serialization header: " + head);
     }
 
     /**
@@ -2013,28 +1862,12 @@ public class SerializerBase{
 
         int CLASS = 139;
         int DATE = 140;
-//        int FUN_HI = 141;
-        int UUID = 142;
+        int UUID = 141;
 
-        //144 to 149 reserved for other non recursive objects
+        //142 to 158 reserved for other non recursive objects
 
-        int MAPDB = 150;
-        int PAIR = 151;
-        int MA_LONG = 152;
-        int MA_INT = 153;
-        int MA_BOOL = 154;
-        int MA_STRING = 155;
-        int MA_VAR = 156;
-
-        /**
-         * reference to named object
-         */
-        int NAMED = 157;
-
-        int  ARRAY_OBJECT = 158;
-        //special cases for BTree values which stores references
-//        int ARRAY_OBJECT_PACKED_LONG = 159; TODO unused
-//        int ARRAYLIST_PACKED_LONG = 160;
+        int SINGLETON = 159;
+        int  ARRAY_OBJECT = 160;
         int ARRAY_OBJECT_ALL_NULL = 161;
         int ARRAY_OBJECT_NO_REFS = 162;
 
@@ -2067,11 +1900,6 @@ public class SerializerBase{
 
     }
 
-    @Override
-    public boolean isTrusted() {
-        return true;
-    }
-
     /** return true if mapdb knows howto serialize given object*/
     public boolean isSerializable(Object o) {
         //check if is known singleton
@@ -2085,34 +1913,6 @@ public class SerializerBase{
         }
 
         return false;
-    }
-
-    /**
-     * Tries to serialize two object and return true if they are binary equal
-     * @param a1 first object
-     * @param a2 second object
-     * @return true if objects are equal or binary equal, false if not equal or some failure happend
-     */
-    public boolean equalsBinary(Object a1, Object a2) {
-        if(Fun.eq(a1,a2))
-            return true;
-        if(a1==null||a2==null)
-            return false;
-        if(a1.getClass()!=a2.getClass())
-            return false;
-        if(!(a1 instanceof Serializable) || !(a2 instanceof Serializable))
-            return false; //serializing non serializable would most likely throw an exception
-
-        try {
-            ElsaUtil.DataOutputByteArray out1 = new ElsaUtil.DataOutputByteArray();
-            serialize(out1,a1);
-            ElsaUtil.DataOutputByteArray out2 = new ElsaUtil.DataOutputByteArray();
-            serialize(out2,a2);
-
-            return out1.pos==out2.pos && Arrays.equals(out1.buf, out2.buf);
-        } catch (Exception e) {
-            return false;
-        }
     }
 
 }

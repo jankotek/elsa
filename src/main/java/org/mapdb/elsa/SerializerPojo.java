@@ -38,7 +38,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     static{
         String ver = System.getProperty("java.version");
         if(ver!=null && ver.toLowerCase().contains("jrockit")){
-            LOG.warning("POJO serialization might not work on JRockit JVM. See https://github.com/jankotek/mapdb/issues/572");
+            LOG.warning("Elsa POJO serialization might not work on JRockit JVM. See https://github.com/jankotek/mapdb/issues/572");
         }
     }
 
@@ -52,7 +52,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             if(ci.useObjectStream)
                 return; //no fields
 
-            DataIO.packInt(out, ci.fields.length);
+            ElsaUtil.packInt(out, ci.fields.length);
             for (FieldInfo fi : ci.fields) {
                 out.writeUTF(fi.name);
                 out.writeBoolean(fi.primitive);
@@ -67,7 +67,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             boolean isEnum = in.readBoolean();
             boolean isExternalizable = in.readBoolean();
 
-            int fieldsNum = isExternalizable? 0 : DataIO.unpackInt(in);
+            int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
             FieldInfo[] fields = new FieldInfo[fieldsNum];
             for (int j = 0; j < fieldsNum; j++) {
                 String fieldName = in.readUTF();
@@ -105,15 +105,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         try {
             return Class.forName(className, true, loader);
         } catch (ClassNotFoundException e) {
-            throw new DBException.ClassNotFound(e);
+            throw new ElsaException(e);
         }
     }
 
-
-    protected final Engine engine;
-
-    protected final Fun.Function1<String,Object> getNameForObject;
-    protected final Fun.Function1<Object,String> getNamedObject;
 
     protected final Fun.Function0<ClassInfo[]> getClassInfos;
     protected final Fun.Function1Int<ClassInfo> getClassInfo;
@@ -122,15 +117,10 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
     public SerializerPojo(
-            Fun.Function1<String, Object> getNameForObject,
-            Fun.Function1<Object, String> getNamedObject,
             Fun.Function1Int<ClassInfo> getClassInfo,
             Fun.Function0<ClassInfo[]> getClassInfos,
             Fun.Function1<Void, String> notifyMissingClassInfo,
-            Fun.Function1<Class, String> classLoader,
-            Engine engine){
-        this.getNameForObject = getNameForObject;
-        this.getNamedObject = getNamedObject;
+            Fun.Function1<Class, String> classLoader){
         this.classLoader = classLoader!=null? classLoader : DEFAULT_CLASS_LOADER;
         this.engine = engine;
         this.getClassInfo = getClassInfo!=null?getClassInfo:new Fun.Function1Int<ClassInfo>() {
@@ -407,7 +397,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return;
 
         if (!Serializable.class.isAssignableFrom(clazz))
-            throw new DBException.ClassNotSerializable(clazz);
+            throw new NotSerializableException(clazz.getName());
 
     }
 
@@ -450,23 +440,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     @Override
-    protected Engine getEngine() {
-        return engine;
-    }
-
-    @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        if(getNameForObject!=null){
-            //check for named objects
-            String name = getNameForObject.run(obj);
-            if(name!=null){
-                out.write(Header.NAMED);
-                out.writeUTF(name);
-                //TODO object stack here?
-                return;
-            }
-        }
-
         out.write(Header.POJO);
 
         ClassInfo[] classes = getClassInfos.run();
@@ -475,8 +449,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         int classId = classToId(classes,obj.getClass().getName());
         if(classId==-1){
             //unknown class, fallback into object OutputOutputStream
-            DataIO.packInt(out,-1);
-            ObjectOutputStream2 out2 = new ObjectOutputStream2((OutputStream) out, classes);
+            ElsaUtil.packInt(out,-1);
+            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out, classes);
             out2.writeObject(obj);
             //and notify listeners about missing class
             if(notifyMissingClassInfo!=null)
@@ -496,11 +470,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
         //write class header
-        DataIO.packInt(out, classId);
+        ElsaUtil.packInt(out, classId);
         ClassInfo classInfo = classes[classId];
 
         if(classInfo.useObjectStream){
-            ObjectOutputStream2 out2 = new ObjectOutputStream2((OutputStream) out, classes);
+            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out, classes);
             out2.writeObject(obj);
             return;
         }
@@ -508,11 +482,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         if(classInfo.isEnum) {
             int ordinal = ((Enum<?>)obj).ordinal();
-            DataIO.packInt(out, ordinal);
+            ElsaUtil.packInt(out, ordinal);
         }
 
         ObjectStreamField[] fields = fieldsForClass(classes, clazz);
-        DataIO.packInt(out, fields.length);
+        ElsaUtil.packInt(out, fields.length);
 
         for (ObjectStreamField f : fields) {
             //write field ID
@@ -525,7 +499,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 //                fieldId = classInfo.addFieldInfo(new FieldInfo(f, clazz));
 //                saveClassInfo();
             }
-            DataIO.packInt(out, fieldId);
+            ElsaUtil.packInt(out, fieldId);
             //and write value
             Object fieldValue = getFieldValue(classInfo.fields[fieldId], obj);
             serialize(out, fieldValue, objectStack);
@@ -535,25 +509,17 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
-        if(head == Header.NAMED){
-            String name = in.readUTF();
-            Object o = getNamedObject.run(name);
-            if(o==null)
-                throw new DBException.DataCorruption("Named object was not found: "+name);
-            objectStack.add(o);
-            return o;
-        }
 
         if(head!= Header.POJO)
-            throw new DBException.DataCorruption("wrong header");
+            throw new ElsaException("wrong header");
         try {
-            int classId = DataIO.unpackInt(in);
+            int classId = ElsaUtil.unpackInt(in);
             ClassInfo classInfo = getClassInfo.run(classId);
 
             //is unknown Class or uses specialized serialization
             if (classId == -1 || classInfo.useObjectStream) {
                 //deserialize using object stream
-                ObjectInputStream2 in2 = new ObjectInputStream2(in, getClassInfos.run());
+                ObjectInputStream2 in2 = new ObjectInputStream2(this, in, getClassInfos.run());
                 Object o = in2.readObject();
                 objectStack.add(o);
                 return o;
@@ -565,7 +531,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             Object o;
             if (classInfo.isEnum) {
-                int ordinal = DataIO.unpackInt(in);
+                int ordinal = ElsaUtil.unpackInt(in);
                 o = clazz.getEnumConstants()[ordinal];
             } else {
                 o = createInstanceSkippinkConstructor(clazz);
@@ -574,9 +540,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             objectStack.add(o);
 
 
-            int fieldCount = DataIO.unpackInt(in);
+            int fieldCount = ElsaUtil.unpackInt(in);
             for (int i = 0; i < fieldCount; i++) {
-                int fieldId = DataIO.unpackInt(in);
+                int fieldId = ElsaUtil.unpackInt(in);
                 FieldInfo f = classInfo.fields[fieldId];
                 Object fieldValue = deserialize(in, objectStack);
                 setFieldValue(f, o, fieldValue);
@@ -584,7 +550,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
             return o;
         }catch(ClassNotFoundException e){
-            throw new DBException.ClassNotFound(e);
+            throw new ElsaException(e);
         }
     }
 
@@ -715,72 +681,4 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
-
-    protected final class ObjectOutputStream2 extends ObjectOutputStream{
-
-        private final ClassInfo[] classes;
-
-        protected ObjectOutputStream2(OutputStream out, ClassInfo[] classes) throws IOException, SecurityException {
-            super(out);
-            this.classes = classes;
-        }
-
-        @Override
-        protected void writeClassDescriptor(ObjectStreamClass desc) throws IOException {
-            int classId = classToId(classes,desc.getName());
-            DataIO.packInt(this,classId);
-            if(classId==-1){
-                //unknown class, write its full name
-                this.writeUTF(desc.getName());
-                //and notify about unknown class
-                if(notifyMissingClassInfo!=null)
-                    notifyMissingClassInfo.run(desc.getName());
-            }
-        }
-    }
-
-    protected final class ObjectInputStream2 extends ObjectInputStream{
-
-        private final ClassInfo[] classes;
-
-        // One-element cache to handle the common case where we immediately resolve a descriptor to its class.
-        // Unlike most ObjecTInputStream subclasses we actually have to look up the class to find the descriptor!
-        private ObjectStreamClass lastDescriptor;
-        private Class lastDescriptorClass;
-
-        protected ObjectInputStream2(DataInput in, ClassInfo[] classes) throws IOException, SecurityException {
-            super(new DataIO.DataInputToStream(in));
-            this.classes = classes;
-        }
-
-        @Override
-        protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
-            int classId = DataIO.unpackInt(this);
-
-            final Class clazz;
-            String className;
-            if(classId == -1){
-                //unknown class, so read its name
-                className = this.readUTF();
-            }else{
-                className = classes[classId].name;
-            }
-            clazz = classLoader.run(className);
-            final ObjectStreamClass descriptor = ObjectStreamClass.lookup(clazz);
-
-            lastDescriptor = descriptor;
-            lastDescriptorClass = clazz;
-
-            return descriptor;
-        }
-
-        @Override
-        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-            if (desc == lastDescriptor) return lastDescriptorClass;
-            Class<?> clazz = classLoader.run(desc.getName());
-            if (clazz != null)
-                return clazz;
-            return super.resolveClass(desc);
-        }
-    }
 }
