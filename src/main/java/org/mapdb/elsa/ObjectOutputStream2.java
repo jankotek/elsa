@@ -11,6 +11,7 @@ import java.io.OutputStream;
 final class ObjectOutputStream2 extends ObjectOutputStream {
 
     private SerializerPojo serializerPojo;
+    //TODO class resolution from POJO
     private final SerializerPojo.ClassInfo[] classes;
 
     protected ObjectOutputStream2(SerializerPojo serializerPojo, OutputStream out) throws IOException, SecurityException {

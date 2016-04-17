@@ -8,6 +8,7 @@ import java.io.*;
 final class ObjectInputStream2 extends ObjectInputStream {
 
     private SerializerPojo serializerPojo;
+    //TODO class resolution from POJO
     private final SerializerPojo.ClassInfo[] classes;
 
     // One-element cache to handle the common case where we immediately resolve a descriptor to its class.
