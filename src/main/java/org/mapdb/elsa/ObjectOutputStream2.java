@@ -8,7 +8,7 @@ import java.io.OutputStream;
 /**
  * Created by jan on 3/28/16.
  */
-public final class ObjectOutputStream2 extends ObjectOutputStream {
+final class ObjectOutputStream2 extends ObjectOutputStream {
 
     private SerializerPojo serializerPojo;
     private final SerializerPojo.ClassInfo[] classes;

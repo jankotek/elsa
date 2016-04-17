@@ -5,7 +5,7 @@ import java.io.*;
 /**
  * Created by jan on 3/28/16.
  */
-public final class ObjectInputStream2 extends ObjectInputStream {
+final class ObjectInputStream2 extends ObjectInputStream {
 
     private SerializerPojo serializerPojo;
     private final SerializerPojo.ClassInfo[] classes;
