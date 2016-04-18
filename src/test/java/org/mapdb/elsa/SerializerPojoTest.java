@@ -534,4 +534,19 @@ public class SerializerPojoTest{
     @Test public void java_serialization(){
         assertTrue(SerializerPojo.usesAdvancedSerialization(ExtHashMap.class));
     }
+
+    String lastMissingClass;
+
+    @Test public void unknown_class_notified() throws IOException {
+        ClassCallback c = new ClassCallback() {
+            @Override
+            public void classMissing(String clazz) {
+                lastMissingClass = clazz;
+            }
+        };
+        Object bean = new Serialization2Bean();
+        SerializerPojo p = new SerializerPojo(c, null);
+        p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
+        assertEquals(lastMissingClass, bean.getClass().getCanonicalName());
+    }
 }

@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 public class SerializerPojo extends SerializerBase implements Serializable{
 
     private static final Logger LOG = Logger.getLogger(SerializerPojo.class.getName());
-    public static final ClassInfo[] EMPTY_CLASS_INFOS = new ClassInfo[0];
+   // public static final ClassInfo[] EMPTY_CLASS_INFOS = new ClassInfo[0];
 
     static{
         String ver = System.getProperty("java.version");
@@ -42,6 +42,19 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             LOG.warning("Elsa POJO serialization might not work on JRockit JVM. See https://github.com/jankotek/mapdb/issues/572");
         }
     }
+
+    protected final ClassCallback missingClassNotification;
+    protected final ClassInfoResolver classInfoResolver;
+
+    public SerializerPojo(){
+        this(null,  null);
+    }
+
+    public SerializerPojo(ClassCallback missingClassNotification, ClassInfoResolver classInfoResolver){
+        this.missingClassNotification = missingClassNotification!=null?missingClassNotification:ClassCallback.VOID;
+        this.classInfoResolver = classInfoResolver!=null?classInfoResolver:ClassInfoResolver.VOID;
+    }
+
 //
 //    protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
 //
@@ -104,15 +117,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     protected ClassInfo getClassInfo(int classId){
-        return null;
-    }
-
-    protected ClassInfo[] getClassInfos(){
-        return EMPTY_CLASS_INFOS;
+        return classInfoResolver.getClassInfo(classId);
     }
 
     protected void notifyMissingClassInfo(String className){
-
+        missingClassNotification.classMissing(className);
     }
 
 
@@ -330,12 +339,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
-    protected static ObjectStreamField[] fieldsForClass(ClassInfo[] classes, Class<?> clazz) {
+    protected ObjectStreamField[] fieldsForClass(Class<?> clazz) {
         ObjectStreamField[] fields = null;
         ClassInfo classInfo = null;
-        int classId = classToId(classes,clazz.getName());
+        int classId = classToId(clazz.getName());
         if (classId != -1) {
-            classInfo = classes[classId];
+            classInfo = getClassInfo(classId);
             fields = classInfo.getObjectStreamFields();
         }
         if (fields == null) {
@@ -370,8 +379,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         return Serializable.class.isAssignableFrom(o.getClass());
     }
 
-    protected void assertClassSerializable(ClassInfo[] classes, Class<?> clazz) throws NotSerializableException, InvalidClassException {
-        if(classToId(classes,clazz.getName())!=-1)
+    protected void assertClassSerializable(Class<?> clazz) throws NotSerializableException, InvalidClassException {
+        if(classToId(clazz.getName())!=-1)
             return;
 
         if (!Serializable.class.isAssignableFrom(clazz))
@@ -409,26 +418,21 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
-    public static int classToId(ClassInfo[] classes, String className) {
-        for(int i=0;i<classes.length;i++){
-            if(classes[i].name.equals(className))
-                return i;
-        }
-        return -1;
+    public int classToId(String className) {
+        return classInfoResolver.classToId(className);
     }
 
     @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
         out.write(Header.POJO);
 
-        ClassInfo[] classes = getClassInfos();
-        assertClassSerializable(classes,obj.getClass());
+        assertClassSerializable(obj.getClass());
         //write class header
-        int classId = classToId(classes,obj.getClass().getName());
+        int classId = classToId(obj.getClass().getName());
         if(classId==-1){
             //unknown class, fallback into object OutputOutputStream
             ElsaUtil.packInt(out,-1);
-            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out, classes);
+            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out);
             out2.writeObject(obj);
             //and notify listeners about missing class
             notifyMissingClassInfo(obj.getClass().getName());
@@ -443,15 +447,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             clazz = clazz.getSuperclass();
 
         if(clazz != Object.class)
-            assertClassSerializable(classes,clazz);
+            assertClassSerializable(clazz);
 
 
         //write class header
         ElsaUtil.packInt(out, classId);
-        ClassInfo classInfo = classes[classId];
+        ClassInfo classInfo = getClassInfo(classId);
 
         if(classInfo.useObjectStream){
-            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out, classes);
+            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out);
             out2.writeObject(obj);
             return;
         }
@@ -462,7 +466,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             ElsaUtil.packInt(out, ordinal);
         }
 
-        ObjectStreamField[] fields = fieldsForClass(classes, clazz);
+        ObjectStreamField[] fields = fieldsForClass(clazz);
         ElsaUtil.packInt(out, fields.length);
 
         for (ObjectStreamField f : fields) {
@@ -496,7 +500,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             //is unknown Class or uses specialized serialization
             if (classId == -1 || classInfo.useObjectStream) {
                 //deserialize using object stream
-                ObjectInputStream2 in2 = new ObjectInputStream2(this, wrapStream(in), getClassInfos());
+                ObjectInputStream2 in2 = new ObjectInputStream2(this, wrapStream(in));
                 Object o = in2.readObject();
                 objectStack.add(o);
                 return o;
