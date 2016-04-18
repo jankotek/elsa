@@ -494,7 +494,7 @@ public class SerializerBaseTest{
     }
 
     /* clone value using serialization */
-    <E> E clone(E value) throws IOException {
+    static <E> E clone(E value) throws IOException {
         return clonePojo(value);
     }
 
@@ -525,12 +525,6 @@ public class SerializerBaseTest{
     }
 
 
-    public static class SerializerBaseTestWithJUDataStreams extends SerializerBaseTest{
-        @Override
-        <E> E clone(E value) throws IOException {
-            return cloneJava(value);
-        }
-    }
 
     @SuppressWarnings({  "rawtypes" })
     @Test public void testHeaderUnique() throws IllegalAccessException {
