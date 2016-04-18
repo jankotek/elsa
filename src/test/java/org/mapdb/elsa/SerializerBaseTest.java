@@ -21,7 +21,6 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.*;
 
@@ -437,21 +436,6 @@ public class SerializerBaseTest{
     }
 
 
-    @Test public void test_static_objects() throws IOException {
-        for(Object o:new SerializerBase().mapdb_all.keySet()){
-            if(o instanceof SerializerBase.Deser)
-                continue;
-            assertTrue(o==clone(o));
-        }
-    }
-
-    @Test public void test_singleton_reverse() throws IOException {
-        SerializerBase b = new SerializerBase();
-        assertEquals(b.mapdb_all.size(), b.mapdb_reverse.size());
-    }
-
-
-
     private static final char[] chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray();
 
 
@@ -499,14 +483,16 @@ public class SerializerBaseTest{
     }
 
     static <E> E clonePojo(E value) throws IOException {
-        SerializerPojo p = new SerializerPojo();
+        return (E) clonePojo(value, new SerializerPojo());
+    }
+
+    static <E> E clonePojo(E value, SerializerBase p) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);
         p.serialize(out2, value);
 
         DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
         return (E) p.deserialize(ins, -1);
-
     }
 
     static <E> E cloneJava(E value) throws IOException {
@@ -540,21 +526,6 @@ public class SerializerBaseTest{
 
             if(value!=SerializerBase.Header.POJO )
                 assertNotNull("deser does not contain value: "+value + " - "+f.getName(), b.headerDeser[value]);
-
-        }
-        assertTrue(!s.isEmpty());
-    }
-
-    @SuppressWarnings({  "rawtypes" })
-    @Test public void testHeaderUniqueMapDB() throws IllegalAccessException {
-        Class c = SerializerBase.HeaderMapDB.class;
-        Set<Integer> s = new TreeSet<Integer>();
-        for (Field f : c.getDeclaredFields()) {
-            f.setAccessible(true);
-            int value = f.getInt(null);
-
-            assertTrue("Value already used: " + value, !s.contains(value));
-            s.add(value);
 
         }
         assertTrue(!s.isEmpty());
@@ -617,14 +588,10 @@ public class SerializerBaseTest{
         }
     }
 
+    static final Object singleton = new Object();
 
-    @Test public void mapdb_singletons_equalent_after_clone() throws IOException {
-        SerializerBase b = new SerializerBase();
-        for(Object o:b.mapdb_all.keySet()){
-            if(o instanceof SerializerBase.Deser)
-                continue;
-            assertTrue(o==clone(o));
-        }
+    @Test public void singletons() throws IOException {
+        SerializerPojo s = new ElsaMaker().singletons(singleton).make();
+        assertTrue(singleton == clonePojo(singleton, s));
     }
-
 }

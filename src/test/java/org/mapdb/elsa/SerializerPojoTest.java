@@ -4,10 +4,6 @@ package org.mapdb.elsa;
 import org.junit.Test;
 
 import java.io.*;
-import java.net.HttpCookie;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 import static org.junit.Assert.assertEquals;
@@ -545,8 +541,9 @@ public class SerializerPojoTest{
             }
         };
         Object bean = new Serialization2Bean();
-        SerializerPojo p = new SerializerPojo(c, null);
+        SerializerPojo p = new SerializerPojo(null, c, null);
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
         assertEquals(lastMissingClass, bean.getClass().getCanonicalName());
     }
+
 }

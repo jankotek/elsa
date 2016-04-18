@@ -132,20 +132,9 @@ public class SerializerBase{
         }
     }
 
-    /** writes single byte header*/
-    protected final class SerHeader implements Ser{
+    protected final Object[] singletons;
+    protected final IdentityHashMap<Object, Integer> singletonsReverse = new IdentityHashMap();
 
-        final byte header;
-
-        public SerHeader(int header) {
-            this.header = (byte) header;
-        }
-
-        @Override
-        public void serialize(DataOutput out, Object value, FastArrayList objectStack) throws IOException {
-            out.write(header);
-        }
-    }
 
     protected final Map<Class, Ser> ser = new IdentityHashMap<Class, Ser>();
 
@@ -181,9 +170,16 @@ public class SerializerBase{
         }
     }
     public SerializerBase(){
+        this(null);
+    }
+
+    public SerializerBase(Object[] singletons){
+        this.singletons = singletons!=null? singletons.clone():new Object[0];
+        for(int i=0;i<this.singletons.length;i++){
+            singletonsReverse.put(this.singletons[i], i);
+        }
         initHeaderDeser();
         initSer();
-        initMapdb();
     }
 
 
@@ -1055,7 +1051,7 @@ public class SerializerBase{
         }
 
         //try mapdb singletons
-        final Integer mapdbSingletonHeader = mapdb_all.get(obj);
+        final Integer mapdbSingletonHeader = singletonsReverse.get(obj);
         if(mapdbSingletonHeader!=null){
             out.write(Header.SINGLETON);
             ElsaUtil.packInt(out, mapdbSingletonHeader);
@@ -1481,50 +1477,10 @@ public class SerializerBase{
         return ret;
     }
 
-    protected interface HeaderMapDB{
-        int B_TREE_ARRAY_SERIALIZER = 56;
-        int THIS_SERIALIZER = 57;
-        int B_TREE_BASIC_KEY_SERIALIZER = 58;
-        int COMPARATOR_ARRAY = 59;
-        int SERIALIZER_COMPRESSION_WRAPPER = 60;
-        int B_TREE_COMPRESS_KEY_SERIALIZER = 64;
-        int SERIALIZER_ARRAY = 65;
-        int SERIALIZER_COMPRESSION_DEFLATE_WRAPPER = 72;
-        // 73 is same as 60, but added latter with new option set to true.
-        // 60 was preserved for compatibility with 2.0 beta1 and beta2
-        int SERIALIZER_COMPRESSION_WRAPPER2 = 73;
-    }
-
-
-        protected final Map<Object,Integer> mapdb_all = new IdentityHashMap<Object, Integer>();
-
-        //TODO use primitive int map
-        protected final Map<Integer,Object> mapdb_reverse = new HashMap<Integer, Object>();
-
-        protected void initMapdb(){
-
-            /*
-             * !!!! IMPORTANT !!!!
-             *   Code bellow defines storage format, do not modify!!!
-             * !!!! IMPORTANT !!!!
-             */
-                //TODO call map_add(1,SINGLETON) to add singletons
-
-        }
-
-
-    private  void mapdb_add(int header, Object singleton) {
-        Object old = mapdb_all.put(singleton,header);
-        Object old2 = mapdb_reverse.put(header,singleton);
-
-        if(old!=null || old2!=null)
-            throw new AssertionError("singleton serializer conflict");
-    }
-
-
+    //TODO this is unused
     public void assertSerializable(Object o){
         if(o!=null && !(o instanceof Serializable)
-                && !mapdb_all.containsKey(o)){
+                && !singletonsReverse.containsKey(o)){
             throw new IllegalArgumentException("Not serializable: "+o.getClass());
         }
     }
@@ -1533,7 +1489,7 @@ public class SerializerBase{
     protected Object deserializeSingleton(DataInput is, FastArrayList<Object> objectStack) throws IOException {
         int head = ElsaUtil.unpackInt(is);
 
-        Object singleton = mapdb_reverse.get(head);
+        Object singleton = singletons[head];
         if(singleton == null){
                 throw new IOError(new IOException("Unknown header byte, data corrupted"));
         }
@@ -1921,7 +1877,7 @@ public class SerializerBase{
     /** return true if mapdb knows howto serialize given object*/
     public boolean isSerializable(Object o) {
         //check if is known singleton
-        if(mapdb_all.containsKey(o)) {
+        if(singletonsReverse.containsKey(o)) {
             return true;
         }
 
