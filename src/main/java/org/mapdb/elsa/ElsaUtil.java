@@ -1,6 +1,7 @@
 package org.mapdb.elsa;
 
 import java.io.*;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -11,6 +12,14 @@ public final class ElsaUtil {
 
     private ElsaUtil(){}
 
+    public static <E> E clone(SerializerPojo serializer, E data) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream out2 = new DataOutputStream(out);
+        serializer.serialize(out2, data);
+
+        DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
+        return (E) serializer.deserialize(ins, -1);
+    }
 
 
     /**

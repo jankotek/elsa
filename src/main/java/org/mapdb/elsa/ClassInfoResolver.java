@@ -28,7 +28,7 @@ public interface ClassInfoResolver {
         public ArrayBased(Class[] classes) {
             classInfos = new SerializerPojo.ClassInfo[classes.length];
             for(int i=0;i<this.classInfos.length;i++){
-                classInfos[i] = SerializerPojo.makeClassInfo(classes[i].getName());
+                classInfos[i] = SerializerPojo.makeClassInfo(classes[i]);
                 reverse.put(this.classInfos[i].name, i);
             }
         }
@@ -47,7 +47,8 @@ public interface ClassInfoResolver {
 
         @Override
         public int classToId(String className) {
-            return reverse.get(className);
+            Integer ret =  reverse.get(className);
+            return ret!=null?ret : -1;
         }
     }
 

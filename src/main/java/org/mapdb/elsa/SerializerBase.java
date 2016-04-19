@@ -141,32 +141,32 @@ public class SerializerBase{
     protected final Deser[] headerDeser = new Deser[255];
 
     //TODO configurable class loader?
-    static protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
-    static protected Class<?> loadClass(String name) throws ClassNotFoundException {
+    protected Class<?> loadClass(String name) throws ClassNotFoundException {
         return Class.forName(name, true, classLoader);
     }
 
 
-    static protected Class loadClass2(DataInput is) throws IOException {
+    protected Class loadClass2(DataInput is) throws IOException {
         return loadClass2(is.readUTF());
     }
 
 
-    static protected Class loadClass2(String name) throws IOException {
+    protected Class loadClass2(String name){
         try {
             return loadClass(name);
         } catch (ClassNotFoundException e) {
-            throw new IOException(e);
+            throw new RuntimeException(e); //TODO exception hierarchy
         }
     }
 
 
-    static protected Class loadClass3(String name){
+    static protected Class loadClass3(String name, ClassLoader classLoader){
         try {
-            return loadClass2(name);
-        } catch (IOException e) {
-            throw new IOError(e);
+            return Class.forName(name, true, classLoader);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e); //TODO exception hierarchy
         }
     }
     public SerializerBase(){

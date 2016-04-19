@@ -56,56 +56,45 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         this.classInfoResolver = classInfoResolver!=null?classInfoResolver:ClassInfoResolver.VOID;
     }
 
-//
-//    protected final Serializer<ClassInfo> classInfoSerializer = new Serializer<ClassInfo>() {
-//
-//        @Override
-//		public void serialize(DataOutput out, ClassInfo ci) throws IOException {
-//            out.writeUTF(ci.name);
-//            out.writeBoolean(ci.isEnum);
-//            out.writeBoolean(ci.useObjectStream);
-//            if(ci.useObjectStream)
-//                return; //no fields
-//
-//            ElsaUtil.packInt(out, ci.fields.length);
-//            for (FieldInfo fi : ci.fields) {
-//                out.writeUTF(fi.name);
-//                out.writeBoolean(fi.primitive);
-//                out.writeUTF(fi.type);
-//            }
-//        }
-//
-//        @Override
-//		public ClassInfo deserialize(DataInput in, int available) throws IOException{
-//            String className = in.readUTF();
-//            Class clazz = null;
-//            boolean isEnum = in.readBoolean();
-//            boolean isExternalizable = in.readBoolean();
-//
-//            int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
-//            FieldInfo[] fields = new FieldInfo[fieldsNum];
-//            for (int j = 0; j < fieldsNum; j++) {
-//                String fieldName = in.readUTF();
-//                boolean primitive = in.readBoolean();
-//                String type = in.readUTF();
-//                if(clazz == null)
-//                    clazz = classLoader.run(className);
-//
-//                fields[j] = new FieldInfo(fieldName,
-//                        type,
-//                        primitive?null:classLoader.run(type),
-//                        clazz);
-//            }
-//            return new ClassInfo(className, fields,isEnum,isExternalizable);
-//        }
-//
-//        @Override
-//        public boolean isTrusted() {
-//            return true;
-//        }
-//
-//
-//    };
+    public void classInfoSerialize(DataOutput out, ClassInfo ci) throws IOException {
+        out.writeUTF(ci.name);
+        out.writeBoolean(ci.isEnum);
+        out.writeBoolean(ci.useObjectStream);
+        if(ci.useObjectStream)
+            return; //no fields
+
+        ElsaUtil.packInt(out, ci.fields.length);
+        for (FieldInfo fi : ci.fields) {
+            out.writeUTF(fi.name);
+            out.writeBoolean(fi.primitive);
+            out.writeUTF(fi.type);
+        }
+    }
+
+    public ClassInfo classInfoDeserialize(DataInput in) throws IOException{
+        String className = in.readUTF();
+        Class clazz = null;
+        boolean isEnum = in.readBoolean();
+        boolean isExternalizable = in.readBoolean();
+
+        int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
+        FieldInfo[] fields = new FieldInfo[fieldsNum];
+        for (int j = 0; j < fieldsNum; j++) {
+            String fieldName = in.readUTF();
+            boolean primitive = in.readBoolean();
+            String type = in.readUTF();
+            if(clazz == null)
+                clazz = loadClass2(className);
+
+            fields[j] = new FieldInfo(fieldName,
+                    type,
+                    primitive?null:loadClass2(type),
+                    clazz);
+        }
+        return new ClassInfo(className, fields,isEnum,isExternalizable);
+    }
+
+
     private static final long serialVersionUID = 1290400014981859025L;
 
 
@@ -118,6 +107,8 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     protected ClassInfo getClassInfo(int classId){
+        if(classId<0)
+            return null;
         return classInfoResolver.getClassInfo(classId);
     }
 
@@ -135,15 +126,15 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
         //PERF optimize deserialization cost here.
 
-        protected final String name;
-        protected final FieldInfo[] fields;
-        protected final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
-        protected final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
-        protected ObjectStreamField[] objectStreamFields;
+        public final String name;
+        public final FieldInfo[] fields;
+        public final Map<String, FieldInfo> name2fieldInfo = new HashMap<String, FieldInfo>();
+        public final Map<String, Integer> name2fieldId = new HashMap<String, Integer>();
+        public ObjectStreamField[] objectStreamFields;
 
-        protected final boolean isEnum;
+        public final boolean isEnum;
 
-        protected final boolean useObjectStream;
+        public final boolean useObjectStream;
 
         public ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
             this.name = name;
@@ -206,14 +197,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
      * Stores info about single field stored in MapDB.
      * Roughly corresponds to 'java.io.ObjectFieldClass'
      */
-    protected static class FieldInfo {
-        protected final String name;
-        protected final boolean primitive;
-        protected final String type;
-        protected Class<?> typeClass;
+    public static class FieldInfo {
+        public final String name;
+        public final boolean primitive;
+        public final String type;
+        public Class<?> typeClass;
         // Class containing this field
-        protected final Class<?> clazz;
-        protected Field field;
+        public final Class<?> clazz;
+        public Field field;
 
 //        FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
 //            this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
@@ -286,10 +277,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
 
-
-
-    public static ClassInfo makeClassInfo(String className){
-        Class clazz = loadClass3(className);
+    public static ClassInfo makeClassInfo(Class clazz){
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
@@ -299,7 +287,26 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             fields[i] = new FieldInfo(
                     sf.getName(),
                     type,
-                    sf.isPrimitive() ? null : loadClass3(type),
+                    sf.isPrimitive() ? null : loadClass3(type, Thread.currentThread().getContextClassLoader()),
+                    clazz);
+        }
+
+        return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
+    }
+
+
+    public ClassInfo makeClassInfo(String className){
+        Class clazz = loadClass2(className);
+        final boolean advancedSer = usesAdvancedSerialization(clazz);
+        ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
+        FieldInfo[] fields = new FieldInfo[streamFields.length];
+        for (int i = 0; i < fields.length; i++) {
+            ObjectStreamField sf = streamFields[i];
+            String type = sf.getType().getName();
+            fields[i] = new FieldInfo(
+                    sf.getName(),
+                    type,
+                    sf.isPrimitive() ? null : loadClass2(type),
                     clazz);
         }
 
@@ -549,7 +556,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     static{
         try{
-            Class<?> clazz = loadClass3("sun.reflect.ReflectionFactory");
+            Class<?> clazz = loadClass3("sun.reflect.ReflectionFactory", Thread.currentThread().getContextClassLoader());
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);
