@@ -1,7 +1,5 @@
 package org.mapdb.elsa;
 
-import java.io.IOException;
-
 /**
  * Created by jan on 3/28/16.
  */

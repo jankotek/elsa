@@ -1,10 +1,11 @@
 package org.mapdb.elsa;
 
 import org.junit.Test;
-import sun.plugin2.message.Serializer;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 

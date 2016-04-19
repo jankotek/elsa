@@ -1,6 +1,9 @@
 package org.mapdb.elsa;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectStreamClass;
 
 /**
  * Created by jan on 3/28/16.
