@@ -47,7 +47,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final ClassInfoResolver classInfoResolver;
 
     public SerializerPojo(){
-        this(null,  null, null);
+        this(null, null,  null);
     }
 
     public SerializerPojo(Object[] singletons, ClassCallback missingClassNotification, ClassInfoResolver classInfoResolver){
@@ -121,7 +121,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         return classInfoResolver.getClassInfo(classId);
     }
 
-    protected void notifyMissingClassInfo(String className){
+    protected void notifyMissingClassInfo(Class className){
         missingClassNotification.classMissing(className);
     }
 
@@ -131,7 +131,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
      * Stores info about single class stored in MapDB.
      * Roughly corresponds to 'java.io.ObjectStreamClass'
      */
-    protected static final class ClassInfo {
+    public static final class ClassInfo {
 
         //PERF optimize deserialization cost here.
 
@@ -288,7 +288,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
 
 
-    public ClassInfo makeClassInfo(String className){
+    public static ClassInfo makeClassInfo(String className){
         Class clazz = loadClass3(className);
         final boolean advancedSer = usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
@@ -436,12 +436,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out);
             out2.writeObject(obj);
             //and notify listeners about missing class
-            notifyMissingClassInfo(obj.getClass().getName());
+            notifyMissingClassInfo(obj.getClass());
             return;
         }
-
-
-
 
         Class<?> clazz = obj.getClass();
         if( !clazz.isEnum() && clazz.getSuperclass()!=null && clazz.getSuperclass().isEnum())

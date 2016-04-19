@@ -7,10 +7,10 @@ public interface ClassCallback {
 
     ClassCallback VOID = new ClassCallback() {
         @Override
-        public void classMissing(String className) {
+        public void classMissing(Class clazz) {
         }
     };
 
-    void classMissing(String className);
+    void classMissing(Class clazz);
 
 }

@@ -1,5 +1,8 @@
 package org.mapdb.elsa;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by jan on 4/18/16.
  */
@@ -16,6 +19,37 @@ public interface ClassInfoResolver {
             return -1;
         }
     };
+
+    public class ArrayBased implements ClassInfoResolver{
+
+        protected final SerializerPojo.ClassInfo[] classInfos;
+        protected final Map<String, Integer> reverse = new HashMap();
+
+        public ArrayBased(Class[] classes) {
+            classInfos = new SerializerPojo.ClassInfo[classes.length];
+            for(int i=0;i<this.classInfos.length;i++){
+                classInfos[i] = SerializerPojo.makeClassInfo(classes[i].getName());
+                reverse.put(this.classInfos[i].name, i);
+            }
+        }
+
+        public ArrayBased(SerializerPojo.ClassInfo[] classInfos) {
+            this.classInfos = classInfos.clone();
+            for(int i=0;i<this.classInfos.length;i++){
+                reverse.put(this.classInfos[i].name, i);
+            }
+        }
+
+        @Override
+        public SerializerPojo.ClassInfo getClassInfo(int classId) {
+            return classInfos[classId];
+        }
+
+        @Override
+        public int classToId(String className) {
+            return reverse.get(className);
+        }
+    }
 
     SerializerPojo.ClassInfo getClassInfo(int classId);
 

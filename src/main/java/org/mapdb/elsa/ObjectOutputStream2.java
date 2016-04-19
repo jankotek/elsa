@@ -27,7 +27,7 @@ final class ObjectOutputStream2 extends ObjectOutputStream {
             this.writeUTF(desc.getName());
             //and notify about unknown class
 
-            serializerPojo.notifyMissingClassInfo(desc.getName());
+            serializerPojo.notifyMissingClassInfo(desc.forClass());
         }
     }
 }

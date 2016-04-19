@@ -1,6 +1,8 @@
 package org.mapdb.elsa;
 
 import java.io.*;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Utilities for Elsa Serialization
@@ -228,4 +230,29 @@ public final class ElsaUtil {
         out.writeByte((byte) ((value & 0x7F)|0x80));
     }
 
+
+    /**
+     * Serializes content of iterable to find unknown classes.
+     * That can be passed to {@link ElsaMaker#registerClasses(Class[])}
+     * }
+     * @param e
+     * @return
+     */
+    static public Class[] findClasses(Iterable e){
+        final Set<Class> classes = new TreeSet();
+        SerializerPojo p = new SerializerPojo(null, new ClassCallback() {
+            @Override
+            public void classMissing(Class clazz) {
+                classes.add(clazz);
+            }
+        }, null);
+        for(Object o:e){
+            try {
+                p.serialize(new DataOutputStream(new ByteArrayOutputStream()), o);
+            } catch (IOException e1) {
+                throw new IOError(e1);
+            }
+        }
+        return classes.toArray(new Class[0]);
+    }
 }
