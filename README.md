@@ -13,7 +13,7 @@ It is faster and more space efficient alternative to `ObjectInputStream` and `Ob
 Elsa tries to be compatible with Java Serialization. 
 It supports `Externalizable` and `Serializable` interfaces, `writeReplace` methods and so on.
 
-Elsa was originally part of [MapDB jar](http://www.mapdb), 
+Elsa was originally part of [MapDB jar](http://www.mapdb.org), 
 but was moved into separate library.
 
 Hello world
