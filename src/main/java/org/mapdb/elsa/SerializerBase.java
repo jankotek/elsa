@@ -202,7 +202,7 @@ public class SerializerBase{
             //add user defined serializers
             if(!userSer.keySet().equals(userSerHeaders.keySet()))
                 throw new IllegalArgumentException();
-            if(new TreeSet(userSerHeaders.values()).size()!=userSerHeaders.size())
+            if(new TreeSet(userSerHeaders.values()).size()!=userDeser.size())
                 throw new IllegalArgumentException();
             if(!userDeser.keySet().equals(new TreeSet(userSerHeaders.values())))
                 throw new IllegalArgumentException();
