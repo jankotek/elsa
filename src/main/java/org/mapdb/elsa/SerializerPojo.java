@@ -47,11 +47,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final ClassInfoResolver classInfoResolver;
 
     public SerializerPojo(){
-        this(null, null,  null);
+        this(null, null,  null, null, null, null);
     }
 
-    public SerializerPojo(Object[] singletons, ClassCallback missingClassNotification, ClassInfoResolver classInfoResolver){
-        super(singletons);
+    public SerializerPojo(Object[] singletons, Map<Class, Ser> userSer, Map<Class, Integer> userSerHeaders, Map<Integer, Deser> userDeser,
+                          ClassCallback missingClassNotification, ClassInfoResolver classInfoResolver){
+        super(singletons, userSer, userSerHeaders, userDeser);
         this.missingClassNotification = missingClassNotification!=null?missingClassNotification:ClassCallback.VOID;
         this.classInfoResolver = classInfoResolver!=null?classInfoResolver:ClassInfoResolver.VOID;
     }

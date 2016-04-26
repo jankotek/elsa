@@ -2,7 +2,9 @@ package org.mapdb.elsa;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ElsaMaker is used to create and configure Elsa serializer.
@@ -12,6 +14,11 @@ public class ElsaMaker {
     protected Object[] singletons = null;
     protected List<Class> classes = new ArrayList<Class>();
     protected ClassCallback unknownClassNotification = null;
+
+    protected Map<Class, SerializerBase.Ser> registeredSers = new HashMap();
+    protected Map<Class, Integer> registeredSerHeaders = new HashMap();
+    protected Map<Integer, SerializerBase.Deser> registeredDeser = new HashMap();
+
 
     /**
      * Register list of singletons. Singletons are serialized using only two bytes. Deserialized singletons  keep reference equality.
@@ -33,6 +40,9 @@ public class ElsaMaker {
     public SerializerPojo make() {
         return new SerializerPojo(
                 singletons,
+                registeredSers,
+                registeredSerHeaders,
+                registeredDeser,
                 unknownClassNotification,
                 new ClassInfoResolver.ArrayBased(classes.toArray(new Class[0]))
         );
@@ -60,4 +70,21 @@ public class ElsaMaker {
         this.unknownClassNotification = callback;
         return this;
     }
+
+    public <E> ElsaMaker registerSer(int header, Class<E> clazz, SerializerBase.Ser<E> ser){
+        if(registeredSers.containsKey(clazz))
+            throw new IllegalArgumentException("Class already has Ser registered: "+clazz);
+        registeredSers.put(clazz, ser);
+        registeredSerHeaders.put(clazz, header);
+
+        return this;
+    }
+
+    public ElsaMaker registerDeser(int header, SerializerBase.Deser deser){
+        if(registeredDeser.get(header)!=null)
+            throw new IllegalArgumentException("Deser for header is already registered: "+header);
+        registeredDeser.put(header, deser);
+        return this;
+    }
+
 }

@@ -30,18 +30,18 @@ import java.util.*;
 public class SerializerBase{
 
 
-    protected interface Ser<A> {
+    public static abstract class Ser<A> {
         /**
          * Serialize the content of an object into a ObjectOutput
          *
          * @param out ObjectOutput to save object into
          * @param value Object to serialize
          */
-        public void serialize( DataOutput out, A value, FastArrayList objectStack)
+        abstract public void serialize( DataOutput out, A value, FastArrayList objectStack)
                 throws IOException;
     }
 
-    protected static abstract class Deser<A> {
+    public static abstract class Deser<A> {
 
         /**
          * Deserialize the content of an object from a DataInput.
@@ -73,6 +73,22 @@ public class SerializerBase{
         }
     }
 
+    protected final static class UserSer extends Ser{
+        protected final int header;
+        protected final Ser ser;
+
+        public UserSer(int header, Ser ser) {
+            this.header = header;
+            this.ser = ser;
+        }
+
+        @Override
+        public void serialize(DataOutput out, Object value, FastArrayList objectStack) throws IOException {
+            out.write(Header.USER_DESER);
+            ElsaUtil.packInt(out, header);
+            ser.serialize(out,value, objectStack);
+        }
+    }
 
     protected static final class DeserStringLen extends Deser{
         final int len;
@@ -139,6 +155,7 @@ public class SerializerBase{
     protected final Map<Class, Ser> ser = new IdentityHashMap<Class, Ser>();
 
     protected final Deser[] headerDeser = new Deser[255];
+    protected final Deser[] userDeser;
 
     //TODO configurable class loader?
     protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -170,16 +187,40 @@ public class SerializerBase{
         }
     }
     public SerializerBase(){
-        this(null);
+        this(null, null, null, null);
     }
 
-    public SerializerBase(Object[] singletons){
+    public SerializerBase(Object[] singletons, Map<Class, Ser> userSer, Map<Class, Integer> userSerHeaders, Map<Integer, Deser> userDeser){
         this.singletons = singletons!=null? singletons.clone():new Object[0];
         for(int i=0;i<this.singletons.length;i++){
             singletonsReverse.put(this.singletons[i], i);
         }
         initHeaderDeser();
         initSer();
+
+        if(!(userSer==null && userSerHeaders==null && userDeser==null)){
+            //add user defined serializers
+            if(!userSer.keySet().equals(userSerHeaders.keySet()))
+                throw new IllegalArgumentException();
+            if(new TreeSet(userSerHeaders.values()).size()!=userSerHeaders.size())
+                throw new IllegalArgumentException();
+            if(!userDeser.keySet().equals(new TreeSet(userSerHeaders.values())))
+                throw new IllegalArgumentException();
+
+            //regirester serializers for each class
+            for(Class clazz:userSer.keySet()){
+                int userHeader = userSerHeaders.get(clazz);
+                ser.put(clazz, new UserSer(userHeader, userSer.get(clazz)));
+            }
+
+            //register deserialization for each user header
+            int maxHeader = userDeser.size()==0?0:new TreeSet<Integer>(userDeser.keySet()).last();
+            this.userDeser = new Deser[maxHeader+1];
+            for(Integer header:userDeser.keySet())
+                this.userDeser[header] = userDeser.get(header);
+        }else{
+            this.userDeser = new Deser[0];
+        }
     }
 
 
@@ -931,9 +972,20 @@ public class SerializerBase{
                 return deserializeSingleton(in,objectStack);
             }
             @Override public boolean needsObjectStack() {
-                //TODO singleton should not need object stack
-                return true;
+                return false;
             }
+        };
+
+        headerDeser[Header.USER_DESER] = new Deser(){
+
+            @Override
+            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+                int userHeader = ElsaUtil.unpackInt(in);
+                if(userHeader>userDeser.length || userDeser[userHeader]==null)
+                    throw new ElsaException("No user deserializer defined for user header "+userHeader);
+                return userDeser[userHeader].deserialize(in, objectStack);
+            }
+
         };
 
 
@@ -965,7 +1017,7 @@ public class SerializerBase{
     /**
      * Utility class similar to ArrayList, but with fast identity search.
      */
-    protected final static class FastArrayList<K> {
+    public final static class FastArrayList<K> {
 
         public int size ;
         public K[] data ;
@@ -1837,6 +1889,7 @@ public class SerializerBase{
         int CLASS = 139;
         int DATE = 140;
         int UUID = 141;
+        int USER_DESER = 142;
 
         //142 to 158 reserved for other non recursive objects
 
