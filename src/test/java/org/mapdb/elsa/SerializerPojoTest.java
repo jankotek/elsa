@@ -554,4 +554,37 @@ public class SerializerPojoTest{
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
         assertEquals(lastMissingClass, null);
     }
+
+    public static class WithClassField implements Serializable {
+        int someValue = 1;
+        Class someClass;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            WithClassField that = (WithClassField) o;
+
+            if (someValue != that.someValue) return false;
+            return someClass != null ? someClass.equals(that.someClass) : that.someClass == null;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = someValue;
+            result = 31 * result + (someClass != null ? someClass.hashCode() : 0);
+            return result;
+        }
+    }
+
+
+    @Test public void class_with_class_field() throws IOException {
+        WithClassField w = new WithClassField();
+        w.someClass = String.class;
+
+        assertEquals(w, outputStreamClone(w));
+        assertEquals(w, SerializerBaseTest.clonePojo(w, p));
+    }
 }
