@@ -190,7 +190,11 @@ public class SerializerBase{
         this(null, null, null, null);
     }
 
-    public SerializerBase(Object[] singletons, Map<Class, Ser> userSer, Map<Class, Integer> userSerHeaders, Map<Integer, Deser> userDeser){
+    public SerializerBase(
+            Object[] singletons,
+            Map<Class, Ser> userSer,
+            Map<Class, Integer> userSerHeaders,
+            Map<Integer, Deser> userDeser){
         this.singletons = singletons!=null? singletons.clone():new Object[0];
         for(int i=0;i<this.singletons.length;i++){
             singletonsReverse.put(this.singletons[i], i);

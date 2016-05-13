@@ -34,6 +34,7 @@
     </scm>
 
     <properties>
+        <kotlin.version>1.0.1</kotlin.version>
         <java.target.version>1.6</java.target.version>
         <java.source.version>1.6</java.source.version>
 
@@ -46,6 +47,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -121,7 +128,26 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
+        <plugin>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-plugin</artifactId>
+            <version>${kotlin.version}</version>
+            <executions>
+                <execution>
+                    <id>test-compile</id>
+                    <phase>process-test-sources</phase>
+                    <goals>
+                        <goal>test-compile</goal>
+                    </goals>
+                    <configuration>
+                        <sourceDirs>
+                            <source>src/test/java</source>
+                        </sourceDirs>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
 
     </build>
 
