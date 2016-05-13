@@ -433,32 +433,31 @@ public class SerializerPojo extends SerializerBase implements Serializable{
 
     @Override
     protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
-        out.write(Header.POJO);
-
         assertClassSerializable(obj.getClass());
-        //write class header
+
+        int head = Header.POJO;
+        ClassInfo classInfo = null;
+
+        //try to resolve from global class resolver
         int classId = classToId(obj.getClass().getName());
-        if(classId==-1){
-            //unknown class, fallback into object OutputOutputStream
-            ElsaUtil.packInt(out,-1);
-            ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out);
-            out2.writeObject(obj);
-            //and notify listeners about missing class
+        if(classId>=0){
+            head = Header.POJO_RESOLVER;
+            classInfo = getClassInfo(classId);
+        }else if((classId = objectStack.resolveClassId(obj.getClass().getName())) <=0) {
+            //class is not known
             notifyMissingClassInfo(obj.getClass());
-            return;
+            classInfo = makeClassInfo(obj.getClass());
+
+            //write unknown class info into local class catalog
+            classId = objectStack.addClassInfo(classInfo);
+            out.write(Header.POJO_CLASSINFO);
+            ElsaUtil.packInt(out, classId);
+            classInfoSerialize(out, classInfo);
         }
-
-        Class<?> clazz = obj.getClass();
-        if( !clazz.isEnum() && clazz.getSuperclass()!=null && clazz.getSuperclass().isEnum())
-            clazz = clazz.getSuperclass();
-
-        if(clazz != Object.class)
-            assertClassSerializable(clazz);
-
-
+        out.write(head);
         //write class header
         ElsaUtil.packInt(out, classId);
-        ClassInfo classInfo = getClassInfo(classId);
+        //and rest of the data
 
         if(classInfo.useObjectStream){
             ObjectOutputStream2 out2 = new ObjectOutputStream2(this, (OutputStream) out);
@@ -466,13 +465,12 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             return;
         }
 
-
         if(classInfo.isEnum) {
             int ordinal = ((Enum<?>)obj).ordinal();
             ElsaUtil.packInt(out, ordinal);
         }
 
-        ObjectStreamField[] fields = fieldsForClass(clazz);
+        ObjectStreamField[] fields = fieldsForClass(obj.getClass());
         ElsaUtil.packInt(out, fields.length);
 
         for (ObjectStreamField f : fields) {
@@ -493,15 +491,26 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         }
     }
 
-
     @Override
     protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
 
-        if(head!= Header.POJO)
+        if(head==Header.POJO_CLASSINFO){
+            int classId = ElsaUtil.unpackInt(in);
+            ClassInfo classInfo = classInfoDeserialize(in);
+            int classId2 = objectStack.addClassInfo(classInfo);
+            if(classId!=classId2)
+                throw new ElsaException("Wrong Stream ClassInfo order");
+            return deserialize(in, objectStack);
+        }
+        if(head!= Header.POJO_RESOLVER && head!= Header.POJO)
             throw new ElsaException("wrong header");
         try {
             int classId = ElsaUtil.unpackInt(in);
-            ClassInfo classInfo = getClassInfo(classId);
+            ClassInfo classInfo =
+                    head==Header.POJO_RESOLVER
+                            ? getClassInfo(classId)
+                            : objectStack.resolveClassInfo(classId);
+
 
             //is unknown Class or uses specialized serialization
             if (classId == -1 || classInfo.useObjectStream) {

@@ -524,7 +524,9 @@ public class SerializerBaseTest{
             assertTrue("Value already used: " + value, !s.contains(value));
             s.add(value);
 
-            if(value!=SerializerBase.Header.POJO )
+            if(value!=SerializerBase.Header.POJO_RESOLVER
+                    && value!=SerializerBase.Header.POJO
+                    && value!=SerializerBase.Header.POJO_CLASSINFO)
                 assertNotNull("deser does not contain value: "+value + " - "+f.getName(), b.headerDeser[value]);
 
         }

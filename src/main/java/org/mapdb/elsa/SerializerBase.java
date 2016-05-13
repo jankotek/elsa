@@ -1064,6 +1064,31 @@ public class SerializerBase{
             return -1;
         }
 
+        SerializerPojo.ClassInfo[] classInfos = null;
+
+        public int resolveClassId(String clazzName) {
+            if(classInfos==null)
+                return -1;
+            for(int i=0;i<classInfos.length;i++){
+                if(classInfos[i].name.equals(clazzName))
+                    return i;
+            }
+            return -1;
+        }
+
+        public int addClassInfo(SerializerPojo.ClassInfo clazzInfo){
+            if(classInfos==null)
+                classInfos = new SerializerPojo.ClassInfo[0];
+
+            int size = classInfos.length;
+            classInfos = Arrays.copyOf(classInfos, size+1);
+            classInfos[size] = clazzInfo;
+            return size;
+        }
+
+        public SerializerPojo.ClassInfo resolveClassInfo(int classId) {
+            return classInfos[classId];
+        }
     }
 
 
@@ -1914,17 +1939,24 @@ public class SerializerBase{
         int JAVA_SERIALIZATION = 172;
 
         /**
-         * Use POJO Serializer to get class structure and set its fields
+         * Use POJO Serializer to get class structure and set its fields.
+         * Class Info is fetched from ClassInfoResolver
          */
-        int POJO = 173;
+        int POJO_RESOLVER = 173;
+
         /**
          * used for reference to already serialized object in object graph
          */
         int OBJECT_STACK = 174;
 
+        /**
+         * Use POJO Serializer to get class structure and set its fields.
+         * Class Info is stored in local stream
+         */
+        int POJO = 175;
 
-
-
+        /** Class Info stored in local stream */
+        int POJO_CLASSINFO = 176;
     }
 
     /** return true if mapdb knows howto serialize given object*/

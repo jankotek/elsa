@@ -579,7 +579,6 @@ public class SerializerPojoTest{
         }
     }
 
-
     @Test public void class_with_class_field() throws IOException {
         WithClassField w = new WithClassField();
         w.someClass = String.class;
@@ -587,4 +586,40 @@ public class SerializerPojoTest{
         assertEquals(w, outputStreamClone(w));
         assertEquals(w, SerializerBaseTest.clonePojo(w, p));
     }
+
+
+    @Test public void unresolved_class_stored_in_stream() throws IOException {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(bout);
+
+        p.serialize(out, new IntBean(5));
+
+        DataInput in = new DataInputStream(new ByteArrayInputStream(bout.toByteArray()));
+
+        assertEquals(SerializerBase.Header.POJO_CLASSINFO, in.readUnsignedByte());
+        assertEquals(0, ElsaUtil.unpackInt(in));
+        assertEquals(p.makeClassInfo(IntBean.class), p.classInfoDeserialize(in));
+
+        assertEquals(SerializerBase.Header.POJO, in.readUnsignedByte());
+        assertEquals(0, ElsaUtil.unpackInt(in)); //class id
+        assertEquals(1, ElsaUtil.unpackInt(in)); //number of fields
+        assertEquals(0, ElsaUtil.unpackInt(in)); //field id
+        assertEquals(SerializerBase.Header.INT_5, in.readUnsignedByte()); //field value
+
+        assertEquals(-1, ((InputStream)in).read());
+    }
+
+    @Test public void classInfoClone() throws IOException {
+        SerializerPojo.ClassInfo c = p.makeClassInfo(IntBean.class);
+
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(bout);
+        p.classInfoSerialize(out, c);
+
+        DataInput in = new DataInputStream(new ByteArrayInputStream(bout.toByteArray()));
+        SerializerPojo.ClassInfo c2 = p.classInfoDeserialize(in);
+
+        assertEquals(c, c2);
+    }
+
 }
