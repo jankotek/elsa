@@ -227,4 +227,70 @@ class CyclicReferenceTest{
         }
     }
 
+    @Test fun selfReference() {
+        for (c in ccNoNullArray.filter { it is Container }) try {
+            val v = c.random()
+            (c as Container<Any?>).add(v, arrayOf(v))
+            val cloned = SerializerBaseTest.clonePojo(v,ser)
+
+            assertTrue(cloned=== c.getContent(cloned)[0])
+        }catch(e:ClassCastException){
+            if(e.message!!.contains("Comparable").not())
+                throw e
+        }
+    }
+
+
+    @Test fun selfReference2() {
+        for (c in ccObj.filter { it is Container }) try {
+            val v = c.random()
+            (c as Container<Any?>).add(v, arrayOf(v))
+            val cloned = SerializerBaseTest.clonePojo(v,serPojo)
+
+            assertTrue(cloned=== c.getContent(cloned)[0])
+        }catch(e:ClassCastException){
+            if(e.message!!.contains("Comparable").not())
+                throw e
+        }
+    }
+
+
+    @Test fun doubleRef() {
+        for (c in ccNoNullArray.filter { it is Container }){
+            for (c2 in ccNoNullArray) try {
+                val v = c.random()
+                if(v is Set<*>)
+                    continue
+                val v2 = c2.random()
+                (c as Container<Any?>).add(v, arrayOf(v2, v2))
+                val cloned = SerializerBaseTest.clonePojo(v, ser)
+                val clonedContent = c.getContent(cloned)
+                assertEquals(2,clonedContent.size)
+                assertTrue(clonedContent[0]===clonedContent[1])
+            } catch(e: ClassCastException) {
+                if (e.message!!.contains("Comparable").not())
+                    throw e
+            }
+        }
+    }
+
+    @Test fun doubleRef2() {
+        for (c in ccObj.filter { it is Container }){
+            for (c2 in ccObj) try {
+                val v = c.random()
+                if(v is Set<*>)
+                    continue
+                val v2 = c2.random()
+                (c as Container<Any?>).add(v, arrayOf(v2,v2))
+                val cloned = SerializerBaseTest.clonePojo(v, serPojo)
+                val clonedContent = c.getContent(cloned)
+                assertEquals(2,clonedContent.size)
+                assertTrue(clonedContent[0]===clonedContent[1])
+            } catch(e: ClassCastException) {
+                if (e.message!!.contains("Comparable").not())
+                    throw e
+            }
+        }
+    }
+
 }
