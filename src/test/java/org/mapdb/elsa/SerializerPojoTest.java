@@ -541,14 +541,14 @@ public class SerializerPojoTest{
 
     @Test public void unknown_class_notified() throws IOException {
         Object bean = new Serialization2Bean();
-        SerializerPojo p = new SerializerPojo(null, null, null, null, lastMissingClassCallback, null);
+        SerializerPojo p = new SerializerPojo(0, null, null, null, null, lastMissingClassCallback, null);
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
         assertEquals(lastMissingClass, bean.getClass());
     }
 
     @Test public void known_class_not_notified() throws IOException {
         Object bean = new Serialization2Bean();
-        SerializerPojo p = new SerializerPojo(null, null, null, null,  lastMissingClassCallback,
+        SerializerPojo p = new SerializerPojo(0, null, null, null, null,  lastMissingClassCallback,
                 new ClassInfoResolver.ArrayBased(new Class[]{bean.getClass()})
                 );
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);

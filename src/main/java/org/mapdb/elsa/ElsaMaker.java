@@ -19,6 +19,12 @@ public class ElsaMaker {
     protected Map<Class, Integer> registeredSerHeaders = new HashMap();
     protected Map<Integer, SerializerBase.Deser> registeredDeser = new HashMap();
 
+    /**
+     * 0 is {@link org.mapdb.elsa.ElsaStack.IdentityArray},
+     * 1 is {@link org.mapdb.elsa.ElsaStack.NoReferenceStack},
+     * 2 is {@link org.mapdb.elsa.ElsaStack.IdentityHashMapStack},
+     */
+    protected int objectStack = 0;
 
     /**
      * Register list of singletons. Singletons are serialized using only two bytes. Deserialized singletons  keep reference equality.
@@ -39,6 +45,7 @@ public class ElsaMaker {
      */
     public SerializerPojo make() {
         return new SerializerPojo(
+                objectStack,
                 singletons,
                 registeredSers,
                 registeredSerHeaders,
@@ -84,6 +91,16 @@ public class ElsaMaker {
         if(registeredDeser.get(header)!=null)
             throw new IllegalArgumentException("Deser for header is already registered: "+header);
         registeredDeser.put(header, deser);
+        return this;
+    }
+
+    public ElsaMaker objectStackDisable() {
+        objectStack = 1;
+        return this;
+    }
+
+    public ElsaMaker objectStackHashEnable() {
+        objectStack = 2;
         return this;
     }
 

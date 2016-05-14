@@ -26,7 +26,7 @@ public class Custom_Serializers {
     /** deserializer which converts binary form into String2*/
     SerializerBase.Deser<String2> deser = new SerializerBase.Deser<String2>() {
         @Override
-        public String2 deserialize(DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        public String2 deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             return new String2(in.readUTF());
         }
     };
@@ -35,7 +35,7 @@ public class Custom_Serializers {
     /** serializer which converts String2 into binary form */
     SerializerBase.Ser<String2> ser = new SerializerBase.Ser<String2>() {
         @Override
-        public void serialize(DataOutput out, String2 value, SerializerBase.FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, String2 value, ElsaStack objectStack) throws IOException {
             out.writeUTF(value.s);
         }
     };

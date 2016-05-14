@@ -168,8 +168,8 @@ class CyclicReferenceTest{
 
         val singletons = arrayOf(SINGLETON1, SINGLETON2)
 
-        val ser = SerializerBase(singletons, null, null, null)
-        val serPojo = SerializerPojo(singletons, null, null, null, null, null)
+        val ser = SerializerBase(0, singletons, null, null, null)
+        val serPojo = SerializerPojo(0, singletons, null, null, null, null, null)
 
     }
 

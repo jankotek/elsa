@@ -37,7 +37,7 @@ public class SerializerBase{
          * @param out ObjectOutput to save object into
          * @param value Object to serialize
          */
-        abstract public void serialize( DataOutput out, A value, FastArrayList objectStack)
+        abstract public void serialize( DataOutput out, A value, ElsaStack objectStack)
                 throws IOException;
     }
 
@@ -50,7 +50,7 @@ public class SerializerBase{
          * @return deserialized object
          * @throws java.io.IOException
          */
-        abstract public A deserialize(DataInput in,  FastArrayList objectStack)
+        abstract public A deserialize(DataInput in,  ElsaStack objectStack)
                 throws IOException;
 
         public boolean needsObjectStack(){
@@ -68,7 +68,7 @@ public class SerializerBase{
         }
 
         @Override
-        public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+        public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             return singleton;
         }
     }
@@ -83,7 +83,7 @@ public class SerializerBase{
         }
 
         @Override
-        public void serialize(DataOutput out, Object value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Object value, ElsaStack objectStack) throws IOException {
             out.write(Header.USER_DESER);
             ElsaUtil.packInt(out, header);
             ser.serialize(out,value, objectStack);
@@ -98,7 +98,7 @@ public class SerializerBase{
         }
 
         @Override
-        public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+        public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             return deserializeString(in,len);
         }
     }
@@ -115,7 +115,7 @@ public class SerializerBase{
         }
 
         @Override
-        public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+        public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             int ret = in.readUnsignedByte()&0xFF;
             for(int i=1;i<digits;i++){
                 ret = (ret<<8) | (in.readUnsignedByte()&0xFF);
@@ -137,7 +137,7 @@ public class SerializerBase{
         }
 
         @Override
-        public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+        public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             long ret = in.readUnsignedByte()&0xFF;
             for(int i=1;i<digits;i++){
                 ret = (ret<<8) | (in.readUnsignedByte()&0xFF);
@@ -148,6 +148,7 @@ public class SerializerBase{
         }
     }
 
+    protected final int objectStackType;
     protected final Object[] singletons;
     protected final IdentityHashMap<Object, Integer> singletonsReverse = new IdentityHashMap();
 
@@ -187,14 +188,16 @@ public class SerializerBase{
         }
     }
     public SerializerBase(){
-        this(null, null, null, null);
+        this(0, null, null, null, null);
     }
 
     public SerializerBase(
+            int objectStackType,
             Object[] singletons,
             Map<Class, Ser> userSer,
             Map<Class, Integer> userSerHeaders,
             Map<Integer, Deser> userDeser){
+        this.objectStackType = objectStackType;
         this.singletons = singletons!=null? singletons.clone():new Object[0];
         for(int i=0;i<this.singletons.length;i++){
             singletonsReverse.put(this.singletons[i], i);
@@ -243,7 +246,7 @@ public class SerializerBase{
         ser.put(byte[].class, SER_BYTE_ARRAY);
         ser.put(boolean[].class, new Ser<boolean[]>() {
             @Override
-            public void serialize(DataOutput out, boolean[] value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, boolean[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_BOOLEAN);
                 ElsaUtil.packInt(out, value.length);//write the number of booleans not the number of bytes
                 SerializerBase.writeBooleanArray(out,value);
@@ -251,7 +254,7 @@ public class SerializerBase{
         });
         ser.put(char[].class, new Ser<char[]>() {
             @Override
-            public void serialize(DataOutput out, char[] value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, char[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_CHAR);
                 ElsaUtil.packInt(out,value.length);
                 for(char v:value){
@@ -261,7 +264,7 @@ public class SerializerBase{
         });
         ser.put(short[].class, new Ser<short[]>() {
             @Override
-            public void serialize(DataOutput out, short[] value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, short[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_SHORT);
                 ElsaUtil.packInt(out,value.length);
                 for(short v:value){
@@ -271,7 +274,7 @@ public class SerializerBase{
         });
         ser.put(float[].class, new Ser<float[]>() {
             @Override
-            public void serialize(DataOutput out, float[] value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, float[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_FLOAT);
                 ElsaUtil.packInt(out,value.length);
                 for(float v:value){
@@ -281,7 +284,7 @@ public class SerializerBase{
         });
         ser.put(double[].class, new Ser<double[]>() {
             @Override
-            public void serialize(DataOutput out, double[] value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, double[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_DOUBLE);
                 ElsaUtil.packInt(out,value.length);
                 for(double v:value){
@@ -294,7 +297,7 @@ public class SerializerBase{
 
         ser.put(BigInteger.class, new Ser<BigInteger>() {
             @Override
-            public void serialize(DataOutput out, BigInteger value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, BigInteger value, ElsaStack objectStack) throws IOException {
                 out.write(Header.BIGINTEGER);
                 byte[] b = value.toByteArray();
                 ElsaUtil.packInt(out, b.length);
@@ -304,7 +307,7 @@ public class SerializerBase{
 
         ser.put(BigDecimal.class, new Ser<BigDecimal>() {
             @Override
-            public void serialize(DataOutput out, BigDecimal value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, BigDecimal value, ElsaStack objectStack) throws IOException {
                 out.write(Header.BIGDECIMAL);
                 byte[] b = value.unscaledValue().toByteArray();
                 ElsaUtil.packInt(out, b.length);
@@ -315,7 +318,7 @@ public class SerializerBase{
 
         ser.put(Class.class, new Ser<Class<?>>(){
             @Override
-            public void serialize(DataOutput out, Class<?> value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Class<?> value, ElsaStack objectStack) throws IOException {
                 out.write(Header.CLASS);
                 out.writeUTF(value.getName());
             }
@@ -323,7 +326,7 @@ public class SerializerBase{
 
         ser.put(Date.class, new Ser<Date>(){
             @Override
-            public void serialize(DataOutput out, Date value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Date value, ElsaStack objectStack) throws IOException {
                 out.write(Header.DATE);
                 out.writeLong(value.getTime());
             }
@@ -331,7 +334,7 @@ public class SerializerBase{
 
         ser.put(UUID.class, new Ser<UUID>(){
             @Override
-            public void serialize(DataOutput out, UUID value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, UUID value, ElsaStack objectStack) throws IOException {
                 out.write(Header.UUID);
                 out.writeLong(value.getMostSignificantBits());
                 out.writeLong(value.getLeastSignificantBits());
@@ -341,56 +344,56 @@ public class SerializerBase{
         ser.put(Object[].class, new Ser<Object[]>(){
 
             @Override
-            public void serialize(DataOutput out, Object[] b, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Object[] b, ElsaStack objectStack) throws IOException {
                 serializeObjectArray(out, b, objectStack);
             }
         });
 
         ser.put(ArrayList.class, new Ser<ArrayList>(){
             @Override
-            public void serialize(DataOutput out, ArrayList value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, ArrayList value, ElsaStack objectStack) throws IOException {
                 serializeCollection(Header.ARRAYLIST, out, value, objectStack);
             }
         });
 
         ser.put(LinkedList.class, new Ser<Collection>(){
             @Override
-            public void serialize(DataOutput out, Collection value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Collection value, ElsaStack objectStack) throws IOException {
                 serializeCollection(Header.LINKEDLIST, out,value, objectStack);
             }
         });
 
         ser.put(HashSet.class, new Ser<Collection>(){
             @Override
-            public void serialize(DataOutput out, Collection value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Collection value, ElsaStack objectStack) throws IOException {
                 serializeCollection(Header.HASHSET, out,value, objectStack);
             }
         });
 
         ser.put(LinkedHashSet.class, new Ser<Collection>(){
             @Override
-            public void serialize(DataOutput out, Collection value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Collection value, ElsaStack objectStack) throws IOException {
                 serializeCollection(Header.LINKEDHASHSET, out,value, objectStack);
             }
         });
 
         ser.put(HashMap.class, new Ser<Map>(){
             @Override
-            public void serialize(DataOutput out, Map value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Map value, ElsaStack objectStack) throws IOException {
                 serializeMap(Header.HASHMAP, out,value, objectStack);
             }
         });
 
         ser.put(LinkedHashMap.class, new Ser<Map>(){
             @Override
-            public void serialize(DataOutput out, Map value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Map value, ElsaStack objectStack) throws IOException {
                 serializeMap(Header.LINKEDHASHMAP, out,value, objectStack);
             }
         });
 
         ser.put(Properties.class, new Ser<Map>(){
             @Override
-            public void serialize(DataOutput out, Map value, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, Map value, ElsaStack objectStack) throws IOException {
                 serializeMap(Header.PROPERTIES, out, value, objectStack);
             }
         });
@@ -398,7 +401,7 @@ public class SerializerBase{
 
         ser.put(TreeSet.class, new Ser<TreeSet>(){
             @Override
-            public void serialize(DataOutput out, TreeSet l, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, TreeSet l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREESET);
                 ElsaUtil.packInt(out, l.size());
                 SerializerBase.this.serialize(out, l.comparator(), objectStack);
@@ -409,7 +412,7 @@ public class SerializerBase{
 
         ser.put(TreeMap.class, new Ser<TreeMap<Object,Object>>(){
             @Override
-            public void serialize(DataOutput out, TreeMap<Object,Object> l, FastArrayList objectStack) throws IOException {
+            public void serialize(DataOutput out, TreeMap<Object,Object> l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREEMAP);
                 ElsaUtil.packInt(out, l.size());
                 SerializerBase.this.serialize(out, l.comparator(), objectStack);
@@ -423,7 +426,7 @@ public class SerializerBase{
         //TODO write automated test to check if static classes inside BTreeKeySer.. .and other can be serialized
     }
 
-    public void serializeObjectArray(DataOutput out, Object[] b, FastArrayList objectStack) throws IOException {
+    public void serializeObjectArray(DataOutput out, Object[] b, ElsaStack objectStack) throws IOException {
         boolean allNull = true;
         //check for all null
         for (Object o : b) {
@@ -459,13 +462,13 @@ public class SerializerBase{
         headerDeser[Header.NULL] = new DeserSingleton(null);
         headerDeser[Header.ZERO_FAIL] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 throw new IOError(new IOException("Zero Header, data corrupted"));
             }
         };
         headerDeser[Header.JAVA_SERIALIZATION] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 throw new IOError(new IOException(
                         "Wrong header, data were probably serialized with " +
                                 "java.lang.ObjectOutputStream," +
@@ -557,50 +560,50 @@ public class SerializerBase{
 
         headerDeser[Header.INT] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readInt();
             }
         };
         headerDeser[Header.LONG] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readLong();
             }
         };
         headerDeser[Header.CHAR] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readChar();
             }
         };
         headerDeser[Header.SHORT] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readShort();
             }
         };
         headerDeser[Header.FLOAT] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readFloat();
             }
         };
         headerDeser[Header.DOUBLE] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readDouble();
             }
         };
         headerDeser[Header.BYTE] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return in.readByte();
             }
         };
 
         headerDeser[Header.STRING] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeString(in, ElsaUtil.unpackInt(in));
             }
         };
@@ -616,55 +619,55 @@ public class SerializerBase{
         headerDeser[Header.STRING_10] = new DeserStringLen(10);
 
         headerDeser[Header.CHAR_255] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (char) in.readUnsignedByte();
             }
         };
 
         headerDeser[Header.SHORT_255] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (short) in.readUnsignedByte();
             }
         };
 
         headerDeser[Header.SHORT_M255] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (short) -in.readUnsignedByte();
             }
         };
 
         headerDeser[Header.FLOAT_255] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (float) in.readUnsignedByte();
             }
         };
 
         headerDeser[Header.FLOAT_SHORT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (float) in.readShort();
             }
         };
 
         headerDeser[Header.DOUBLE_255] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (double) in.readUnsignedByte();
             }
         };
 
         headerDeser[Header.DOUBLE_SHORT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (double) in.readShort();
             }
         };
 
         headerDeser[Header.DOUBLE_INT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return (double) in.readInt();
             }
         };
 
         headerDeser[Header.ARRAY_BYTE_ALL_EQUAL] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 byte[] b = new byte[ElsaUtil.unpackInt(in)];
                 Arrays.fill(b, in.readByte());
                 return b;
@@ -673,14 +676,14 @@ public class SerializerBase{
 
         headerDeser[Header.ARRAY_BOOLEAN] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 return SerializerBase.readBooleanArray(size, in);
             }
         };
         headerDeser[Header.ARRAY_INT] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 int[] ret = new int[size];
                 for(int i=0;i<size;i++){
@@ -692,7 +695,7 @@ public class SerializerBase{
 
         headerDeser[Header.ARRAY_LONG] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 long[] ret = new long[size];
                 for(int i=0;i<size;i++){
@@ -703,7 +706,7 @@ public class SerializerBase{
         };
         headerDeser[Header.ARRAY_SHORT] =  new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 short[] ret = new short[size];
                 for(int i=0;i<size;i++){
@@ -714,7 +717,7 @@ public class SerializerBase{
         };
         headerDeser[Header.ARRAY_DOUBLE] =  new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 double[] ret = new double[size];
                 for(int i=0;i<size;i++){
@@ -725,7 +728,7 @@ public class SerializerBase{
         };
         headerDeser[Header.ARRAY_FLOAT]=  new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 float[] ret = new float[size];
                 for(int i=0;i<size;i++){
@@ -736,7 +739,7 @@ public class SerializerBase{
         };
         headerDeser[Header.ARRAY_CHAR]= new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 char[] ret = new char[size];
                 for(int i=0;i<size;i++){
@@ -748,7 +751,7 @@ public class SerializerBase{
         headerDeser[Header.ARRAY_BYTE]= DESER_BYTE_ARRAY;
 
         headerDeser[Header.ARRAY_INT_BYTE] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int[] ret=new int[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = in.readByte();
@@ -757,7 +760,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAY_INT_SHORT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int[] ret=new int[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = in.readShort();
@@ -767,7 +770,7 @@ public class SerializerBase{
 
 
         headerDeser[Header.ARRAY_INT_PACKED] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int[] ret=new int[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = ElsaUtil.unpackInt(in);
@@ -777,7 +780,7 @@ public class SerializerBase{
 
 
         headerDeser[Header.ARRAY_LONG_BYTE] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 long[] ret=new long[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = in.readByte();
@@ -786,7 +789,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAY_LONG_SHORT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 long[] ret=new long[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = in.readShort();
@@ -795,7 +798,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAY_LONG_INT] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 long[] ret=new long[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = in.readInt();
@@ -804,7 +807,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAY_LONG_PACKED] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 long[] ret=new long[ElsaUtil.unpackInt(in)];
                 for(int i=0;i<ret.length;i++)
                     ret[i] = ElsaUtil.unpackLong(in);
@@ -814,13 +817,13 @@ public class SerializerBase{
 
         headerDeser[Header.BIGINTEGER] = new Deser(){
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return new BigInteger(DESER_BYTE_ARRAY.deserialize(in,objectStack));
             }
         };
         headerDeser[Header.BIGDECIMAL] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return new BigDecimal(new BigInteger(
                         DESER_BYTE_ARRAY.deserialize(in,objectStack)),
                         ElsaUtil.unpackInt(in));
@@ -828,7 +831,7 @@ public class SerializerBase{
         };
         headerDeser[Header.CLASS] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 try {
                     return loadClass(in.readUTF());
                 } catch (ClassNotFoundException e) {
@@ -838,26 +841,26 @@ public class SerializerBase{
         };
         headerDeser[Header.DATE] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return new Date(in.readLong());
             }
         };
         headerDeser[Header.UUID] = new Deser() {
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return new UUID(in.readLong(), in.readLong());
             }
         };
 
         headerDeser[Header.ARRAY_OBJECT_ALL_NULL] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
                 Class clazz = loadClass2(in);
                 return java.lang.reflect.Array.newInstance(clazz, size);
             }
         };
         headerDeser[Header.ARRAY_OBJECT_NO_REFS] = new Deser(){
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 //TODO serializatio code for this does not exist, add it in future
                 int size = ElsaUtil.unpackInt(in);
                 Class clazz = loadClass2(in);
@@ -870,8 +873,8 @@ public class SerializerBase{
         };
 
         headerDeser[Header.OBJECT_STACK] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
-                return objectStack.data[ElsaUtil.unpackInt(in)];
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
+                return objectStack.getInstance(ElsaUtil.unpackInt(in));
             }
 
             @Override public boolean needsObjectStack() {
@@ -880,7 +883,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAYLIST] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeArrayList(in, objectStack);
             }
 
@@ -890,7 +893,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.ARRAY_OBJECT] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeArrayObject(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -899,7 +902,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.LINKEDLIST] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeLinkedList(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -908,7 +911,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.TREESET] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeTreeSet(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -917,7 +920,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.HASHSET] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeHashSet(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -926,7 +929,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.LINKEDHASHSET] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeLinkedHashSet(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -935,7 +938,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.TREEMAP] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeTreeMap(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -944,7 +947,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.HASHMAP] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeHashMap(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -953,7 +956,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.LINKEDHASHMAP] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeLinkedHashMap(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -962,7 +965,7 @@ public class SerializerBase{
         };
 
         headerDeser[Header.PROPERTIES] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeProperties(in, objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -972,7 +975,7 @@ public class SerializerBase{
 
 
         headerDeser[Header.SINGLETON] = new Deser() {
-            @Override public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            @Override public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 return deserializeSingleton(in,objectStack);
             }
             @Override public boolean needsObjectStack() {
@@ -983,7 +986,7 @@ public class SerializerBase{
         headerDeser[Header.USER_DESER] = new Deser(){
 
             @Override
-            public Object deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+            public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int userHeader = ElsaUtil.unpackInt(in);
                 if(userHeader>userDeser.length || userDeser[userHeader]==null)
                     throw new ElsaException("No user deserializer defined for user header "+userHeader);
@@ -1018,91 +1021,21 @@ public class SerializerBase{
     }
 
 
-    /**
-     * Utility class similar to ArrayList, but with fast identity search.
-     */
-    public final static class FastArrayList<K> {
-
-        public int size ;
-        public K[] data ;
-
-        public FastArrayList(){
-            size=0;
-            data = (K[]) new Object[1];
-        }
-
-        public boolean forwardRefs = false;
-
-
-        public void add(K o) {
-            if (data.length == size) {
-                //grow array if necessary
-                data = Arrays.copyOf(data, data.length * 2);
-            }
-
-            data[size] = o;
-            size++;
-        }
-
-
-
-        /**
-         * This method is reason why ArrayList is not used.
-         * Search an item in list and returns its index.
-         * It uses identity rather than 'equalsTo'
-         * One could argue that TreeMap should be used instead,
-         * but we do not expect large object trees.
-         * This search is VERY FAST compared to Maps, it does not allocate
-         * new instances or uses method calls.
-         *
-         * @param obj to find in list
-         * @return index of object in list or -1 if not found
-         */
-        public int identityIndexOf(Object obj) {
-            for (int i = 0; i < size; i++) {
-                if (obj == data[i]){
-                    forwardRefs = true;
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        SerializerPojo.ClassInfo[] classInfos = null;
-
-        public int resolveClassId(String clazzName) {
-            if(classInfos==null)
-                return -1;
-            for(int i=0;i<classInfos.length;i++){
-                if(classInfos[i].name.equals(clazzName))
-                    return i;
-            }
-            return -1;
-        }
-
-        public int addClassInfo(SerializerPojo.ClassInfo clazzInfo){
-            if(classInfos==null)
-                classInfos = new SerializerPojo.ClassInfo[0];
-
-            int size = classInfos.length;
-            classInfos = Arrays.copyOf(classInfos, size+1);
-            classInfos[size] = clazzInfo;
-            return size;
-        }
-
-        public SerializerPojo.ClassInfo resolveClassInfo(int classId) {
-            return classInfos[classId];
-        }
-    }
-
-
-
     public void serialize(final DataOutput out, final Object obj) throws IOException {
-        serialize(out, obj, new FastArrayList<Object>());
+        serialize(out, obj, newElsaStack());
+    }
+
+    protected ElsaStack newElsaStack() {
+        switch(objectStackType){
+            case 0: return new ElsaStack.IdentityArray();
+            case 1: return new ElsaStack.NoReferenceStack();
+            case 2: return new ElsaStack.IdentityHashMapStack();
+            default: throw new IllegalArgumentException("Unknown objectStackType:  " +objectStackType);
+        }
     }
 
 
-    public void serialize(final DataOutput out, final Object obj, FastArrayList<Object> objectStack) throws IOException {
+    public void serialize(final DataOutput out, final Object obj, ElsaStack objectStack) throws IOException {
 
         if (obj == null) {
             out.write(Header.NULL);
@@ -1152,7 +1085,7 @@ public class SerializerBase{
 
     protected static final Ser SER_STRING = new Ser<String>(){
         @Override
-        public void serialize(DataOutput out, String value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, String value, ElsaStack objectStack) throws IOException {
             int len = value.length();
             if(len == 0){
                 out.write(Header.STRING_0);
@@ -1171,7 +1104,7 @@ public class SerializerBase{
 
     protected static final Ser SER_LONG_ARRAY = new Ser<long[]>() {
         @Override
-        public void serialize(DataOutput out, long[] val, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, long[] val, ElsaStack objectStack) throws IOException {
 
             long max = Long.MIN_VALUE;
             long min = Long.MAX_VALUE;
@@ -1205,7 +1138,7 @@ public class SerializerBase{
 
     protected static final Ser SER_INT_ARRAY = new Ser<int[]>() {
         @Override
-        public void serialize(DataOutput out, int[] val, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, int[] val, ElsaStack objectStack) throws IOException {
 
             int max = Integer.MIN_VALUE;
             int min = Integer.MAX_VALUE;
@@ -1235,7 +1168,7 @@ public class SerializerBase{
 
     protected static final Ser SER_DOUBLE = new Ser<Double>() {
         @Override
-        public void serialize(DataOutput out, Double value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Double value, ElsaStack objectStack) throws IOException {
             double v = value;
             if (v == -1D) {
                 out.write(Header.DOUBLE_M1);
@@ -1261,7 +1194,7 @@ public class SerializerBase{
 
     protected static final Ser SER_FLOAT = new Ser<Float>() {
         @Override
-        public void serialize(DataOutput out, Float value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Float value, ElsaStack objectStack) throws IOException {
             float v = value;
             if (v == -1f)
                 out.write(Header.FLOAT_M1);
@@ -1284,7 +1217,7 @@ public class SerializerBase{
 
     protected static final Ser SER_SHORT = new Ser<Short>() {
         @Override
-        public void serialize(DataOutput out, Short value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Short value, ElsaStack objectStack) throws IOException {
 
             short val = value;
             if (val == -1) {
@@ -1308,7 +1241,7 @@ public class SerializerBase{
 
     protected static final Ser SER_CHAR = new Ser<Character>() {
         @Override
-        public void serialize(DataOutput out, Character value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Character value, ElsaStack objectStack) throws IOException {
             char val = value;
             if (val == 0) {
                 out.write(Header.CHAR_0);
@@ -1326,7 +1259,7 @@ public class SerializerBase{
 
     protected static final Ser SER_BYTE= new Ser<Byte>() {
         @Override
-        public void serialize(DataOutput out, Byte value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Byte value, ElsaStack objectStack) throws IOException {
             byte val = value;
             if (val == -1)
                 out.write(Header.BYTE_M1);
@@ -1343,7 +1276,7 @@ public class SerializerBase{
 
     protected static final Ser SER_BOOLEAN = new Ser<Boolean>() {
         @Override
-        public void serialize(DataOutput out, Boolean value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Boolean value, ElsaStack objectStack) throws IOException {
             out.write(value ? Header.BOOLEAN_TRUE : Header.BOOLEAN_FALSE);
         }
     };
@@ -1351,7 +1284,7 @@ public class SerializerBase{
 
     protected static final Ser SER_LONG = new Ser<Long>() {
         @Override
-        public void serialize(DataOutput out, Long value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Long value, ElsaStack objectStack) throws IOException {
             long val = value;
             if (val >= -9 && val <= 16) {
                 out.write((int) (Header.LONG_M9 + (val + 9)));
@@ -1393,7 +1326,7 @@ public class SerializerBase{
 
     protected static final Ser SER_INT = new Ser<Integer>() {
         @Override
-        public void serialize(DataOutput out, Integer value, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, Integer value, ElsaStack objectStack) throws IOException {
             int val = value;
             switch (val) {
                 case -9:
@@ -1467,7 +1400,7 @@ public class SerializerBase{
     }
 
 
-    private void serializeMap(int header, DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
+    private void serializeMap(int header, DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         Map<Object,Object> l = (Map) obj;
         out.write(header);
         ElsaUtil.packInt(out, l.size());
@@ -1477,7 +1410,7 @@ public class SerializerBase{
         }
     }
 
-    private void serializeCollection(int header, DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
+    private void serializeCollection(int header, DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         Collection l = (Collection) obj;
         out.write(header);
         ElsaUtil.packInt(out, l.size());
@@ -1490,7 +1423,7 @@ public class SerializerBase{
 
     protected static final Ser<byte[]> SER_BYTE_ARRAY = new Ser<byte[]>() {
         @Override
-        public void serialize(DataOutput out, byte[] b, FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, byte[] b, ElsaStack objectStack) throws IOException {
             boolean allEqual = b.length>0;
             //check if all values in byte[] are equal
             for(int i=1;i<b.length;i++){
@@ -1514,7 +1447,7 @@ public class SerializerBase{
 
     protected static final Deser<byte[]> DESER_BYTE_ARRAY = new Deser() {
         @Override
-        public byte[] deserialize(DataInput in, FastArrayList objectStack) throws IOException {
+        public byte[] deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             int size = ElsaUtil.unpackInt(in);
             byte[] ret = new byte[size];
             in.readFully(ret);
@@ -1533,14 +1466,14 @@ public class SerializerBase{
 
     public Object deserialize(DataInput in, int capacity) throws IOException {
         if(capacity==0) return null;
-        return deserialize(in, new FastArrayList<Object>());
+        return deserialize(in, newElsaStack());
     }
 
-    public Object deserialize(DataInput in, FastArrayList<Object> objectStack) throws IOException {
+    public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
 
         final int head = in.readUnsignedByte();
 
-        int oldObjectStackSize = objectStack.size;
+        int oldObjectStackSize = objectStack.getSize();
 
         Object ret = null;
         Deser deser = headerDeser[head];
@@ -1550,7 +1483,7 @@ public class SerializerBase{
             ret = deserializeUnknownHeader(in, head,objectStack);
         }
 
-        if (head != Header.OBJECT_STACK && ret!=null && objectStack.size == oldObjectStackSize) {
+        if (head != Header.OBJECT_STACK && ret!=null && objectStack.getSize() == oldObjectStackSize) {
             //check if object was not already added to stack as part of collection
             objectStack.add(ret);
         }
@@ -1567,7 +1500,7 @@ public class SerializerBase{
     }
 
 
-    protected Object deserializeSingleton(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    protected Object deserializeSingleton(DataInput is, ElsaStack objectStack) throws IOException {
         int head = ElsaUtil.unpackInt(is);
 
         Object singleton = singletons[head];
@@ -1584,7 +1517,7 @@ public class SerializerBase{
 
 
 
-    private Object[] deserializeArrayObject(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private Object[] deserializeArrayObject(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         Class clazz = loadClass2(is);
         Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
@@ -1596,7 +1529,7 @@ public class SerializerBase{
     }
 
 
-    private ArrayList<Object> deserializeArrayList(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private ArrayList<Object> deserializeArrayList(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         ArrayList<Object> s = new ArrayList<Object>(size);
         objectStack.add(s);
@@ -1607,7 +1540,7 @@ public class SerializerBase{
     }
 
 
-    private java.util.LinkedList deserializeLinkedList(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private java.util.LinkedList deserializeLinkedList(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         java.util.LinkedList s = new java.util.LinkedList();
         objectStack.add(s);
@@ -1619,7 +1552,7 @@ public class SerializerBase{
 
 
 
-    private HashSet<Object> deserializeHashSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private HashSet<Object> deserializeHashSet(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         HashSet<Object> s = new HashSet<Object>(size);
         objectStack.add(s);
@@ -1629,7 +1562,7 @@ public class SerializerBase{
     }
 
 
-    private LinkedHashSet<Object> deserializeLinkedHashSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private LinkedHashSet<Object> deserializeLinkedHashSet(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         LinkedHashSet<Object> s = new LinkedHashSet<Object>(size);
         objectStack.add(s);
@@ -1639,7 +1572,7 @@ public class SerializerBase{
     }
 
 
-    private TreeSet<Object> deserializeTreeSet(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private TreeSet<Object> deserializeTreeSet(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
         TreeSet<Object> s = new TreeSet<Object>();
         objectStack.add(s);
@@ -1653,7 +1586,7 @@ public class SerializerBase{
     }
 
 
-    private TreeMap<Object, Object> deserializeTreeMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private TreeMap<Object, Object> deserializeTreeMap(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
 
         TreeMap<Object, Object> s = new TreeMap<Object, Object>();
@@ -1667,7 +1600,7 @@ public class SerializerBase{
     }
 
 
-    private HashMap<Object, Object> deserializeHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private HashMap<Object, Object> deserializeHashMap(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
 
         HashMap<Object, Object> s = new HashMap<Object, Object>(size);
@@ -1678,7 +1611,7 @@ public class SerializerBase{
     }
 
 
-    private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private LinkedHashMap<Object, Object> deserializeLinkedHashMap(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
 
         LinkedHashMap<Object, Object> s = new LinkedHashMap<Object, Object>(size);
@@ -1690,7 +1623,7 @@ public class SerializerBase{
 
 
 
-    private Properties deserializeProperties(DataInput is, FastArrayList<Object> objectStack) throws IOException {
+    private Properties deserializeProperties(DataInput is, ElsaStack objectStack) throws IOException {
         int size = ElsaUtil.unpackInt(is);
 
         Properties s = new Properties();
@@ -1701,11 +1634,11 @@ public class SerializerBase{
     }
 
     /** override this method to extend SerializerBase functionality*/
-    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
+    protected void serializeUnknownObject(DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         throw new NotSerializableException("Could not serialize unknown object: "+obj.getClass().getName());
     }
     /** override this method to extend SerializerBase functionality*/
-    protected Object deserializeUnknownHeader(DataInput is, int head, FastArrayList<Object> objectStack) throws IOException {
+    protected Object deserializeUnknownHeader(DataInput is, int head, ElsaStack objectStack) throws IOException {
         throw new IOException("Unknown serialization header: " + head);
     }
 

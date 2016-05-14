@@ -47,12 +47,18 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final ClassInfoResolver classInfoResolver;
 
     public SerializerPojo(){
-        this(null, null,  null, null, null, null);
+        this(0, null, null,  null, null, null, null);
     }
 
-    public SerializerPojo(Object[] singletons, Map<Class, Ser> userSer, Map<Class, Integer> userSerHeaders, Map<Integer, Deser> userDeser,
-                          ClassCallback missingClassNotification, ClassInfoResolver classInfoResolver){
-        super(singletons, userSer, userSerHeaders, userDeser);
+    public SerializerPojo(
+            int objectStackType,
+            Object[] singletons,
+            Map<Class, Ser> userSer,
+            Map<Class, Integer> userSerHeaders,
+            Map<Integer, Deser> userDeser,
+            ClassCallback missingClassNotification,
+            ClassInfoResolver classInfoResolver){
+        super(objectStackType, singletons, userSer, userSerHeaders, userDeser);
         this.missingClassNotification = missingClassNotification!=null?missingClassNotification:ClassCallback.VOID;
         this.classInfoResolver = classInfoResolver!=null?classInfoResolver:ClassInfoResolver.VOID;
     }
@@ -363,18 +369,19 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     private static ObjectStreamField[] makeFieldsForClass(Class<?> clazz) {
-        ObjectStreamField[] fields;ObjectStreamClass streamClass = ObjectStreamClass.lookup(clazz);
-        FastArrayList<ObjectStreamField> fieldsList = new FastArrayList<ObjectStreamField>();
+        ObjectStreamField[] fields = new ObjectStreamField[4];
+        int fieldsSize = 0;
+        ObjectStreamClass streamClass = ObjectStreamClass.lookup(clazz);
         while (streamClass != null) {
             for (ObjectStreamField f : streamClass.getFields()) {
-                fieldsList.add(f);
+                if(fieldsSize==fields.length-1)
+                    fields = Arrays.copyOf(fields, fields.length*2);
+                fields[fieldsSize++]=f;
             }
             clazz = clazz.getSuperclass();
             streamClass = clazz!=null? ObjectStreamClass.lookup(clazz) : null;
         }
-        fields = new ObjectStreamField[fieldsList
-                .size];
-        System.arraycopy(fieldsList.data, 0, fields, 0, fields.length);
+        fields = Arrays.copyOf(fields, fieldsSize);
         //TODO what is StreamField? perhaps performance optim?
 //        if(classInfo != null)
 //            classInfo.setObjectStreamFields(fields);
@@ -432,7 +439,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     @Override
-    protected void serializeUnknownObject(DataOutput out, Object obj, FastArrayList<Object> objectStack) throws IOException {
+    protected void serializeUnknownObject(DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         assertClassSerializable(obj.getClass());
 
         int head = Header.POJO;
@@ -492,7 +499,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     }
 
     @Override
-    protected Object deserializeUnknownHeader(DataInput in, int head, FastArrayList<Object> objectStack) throws IOException {
+    protected Object deserializeUnknownHeader(DataInput in, int head, ElsaStack objectStack) throws IOException {
 
         if(head==Header.POJO_CLASSINFO){
             int classId = ElsaUtil.unpackInt(in);

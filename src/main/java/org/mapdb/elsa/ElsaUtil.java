@@ -249,7 +249,7 @@ public final class ElsaUtil {
      */
     static public Class[] findClasses(Iterable e){
         final Set<Class> classes = new TreeSet();
-        SerializerPojo p = new SerializerPojo(null, null, null, null, new ClassCallback() {
+        SerializerPojo p = new SerializerPojo(0, null, null, null, null, new ClassCallback() {
             @Override
             public void classMissing(Class clazz) {
                 classes.add(clazz);

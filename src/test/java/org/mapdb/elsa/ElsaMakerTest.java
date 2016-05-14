@@ -1,5 +1,6 @@
 package org.mapdb.elsa;
 
+import org.fest.reflect.core.Reflection;
 import org.junit.Test;
 
 import java.io.DataInput;
@@ -7,6 +8,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ElsaMakerTest {
 
@@ -37,7 +39,7 @@ public class ElsaMakerTest {
 
     SerializerBase.Deser<String2> deser = new SerializerBase.Deser<String2>() {
         @Override
-        public String2 deserialize(DataInput in, SerializerBase.FastArrayList objectStack) throws IOException {
+        public String2 deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             deserCounter++;
             return new String2(in.readUTF());
         }
@@ -47,7 +49,7 @@ public class ElsaMakerTest {
 
     SerializerBase.Ser<String2> ser = new SerializerBase.Ser<String2>() {
         @Override
-        public void serialize(DataOutput out, String2 value, SerializerBase.FastArrayList objectStack) throws IOException {
+        public void serialize(DataOutput out, String2 value, ElsaStack objectStack) throws IOException {
             serCounter++;
             out.writeUTF(value.s);
         }
@@ -65,6 +67,25 @@ public class ElsaMakerTest {
         assertEquals(str.s,str2.s);
         assertEquals(1, deserCounter);
         assertEquals(1, serCounter);
+    }
 
+    @Test public void objectStackNoRef(){
+        SerializerPojo ser = new ElsaMaker().objectStackDisable().make();
+        Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
+        assertTrue(stack instanceof ElsaStack.NoReferenceStack);
+    }
+
+
+    @Test public void objectStackHash(){
+        SerializerPojo ser = new ElsaMaker().objectStackHashEnable().make();
+        Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
+        assertTrue(stack instanceof ElsaStack.IdentityHashMapStack);
+    }
+
+
+    @Test public void objectStackDefault(){
+        SerializerPojo ser = new ElsaMaker().make();
+        Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
+        assertTrue(stack instanceof ElsaStack.IdentityArray);
     }
 }
