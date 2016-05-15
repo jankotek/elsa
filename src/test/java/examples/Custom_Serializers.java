@@ -6,7 +6,9 @@ import org.mapdb.elsa.*;
 import java.io.*;
 
 /**
- * Demonstrates howto plug your own Serializer and Deserializer into Elsa
+ * Demonstrates howto plug your own Serializer and Deserializer into Elsa.
+ * It is part of Object Graph, so custom serializer is also used for values stored in field,
+ * not just top-level objects.
  */
 public class Custom_Serializers {
 

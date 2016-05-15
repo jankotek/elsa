@@ -70,21 +70,21 @@ public class ElsaMakerTest {
     }
 
     @Test public void objectStackNoRef(){
-        SerializerPojo ser = new ElsaMaker().objectStackDisable().make();
+        SerializerPojo ser = new ElsaMaker().referenceDisable().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.NoReferenceStack);
     }
 
 
     @Test public void objectStackHash(){
-        SerializerPojo ser = new ElsaMaker().objectStackHashEnable().make();
+        SerializerPojo ser = new ElsaMaker().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.IdentityHashMapStack);
     }
 
 
     @Test public void objectStackDefault(){
-        SerializerPojo ser = new ElsaMaker().make();
+        SerializerPojo ser = new ElsaMaker().referenceArrayEnable().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.IdentityArray);
     }

@@ -39,9 +39,7 @@ public class Class_Catalog {
         serializer.serialize(out2, data);
         int sizeWithoutCatalog = out.toByteArray().length;
 
-
-
-        //serialize wit using class catalog
+        //serialize with using class catalog
         out = new ByteArrayOutputStream();
         out2 = new DataOutputStream(out);
 

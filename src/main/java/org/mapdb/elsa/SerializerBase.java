@@ -27,7 +27,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBase{
+public class SerializerBase implements ElsaSerializer{
 
 
     public static abstract class Ser<A> {
@@ -1021,15 +1021,16 @@ public class SerializerBase{
     }
 
 
+    @Override
     public void serialize(final DataOutput out, final Object obj) throws IOException {
         serialize(out, obj, newElsaStack());
     }
 
     protected ElsaStack newElsaStack() {
         switch(objectStackType){
-            case 0: return new ElsaStack.IdentityArray();
+            case 2: return new ElsaStack.IdentityArray();
             case 1: return new ElsaStack.NoReferenceStack();
-            case 2: return new ElsaStack.IdentityHashMapStack();
+            case 0: return new ElsaStack.IdentityHashMapStack();
             default: throw new IllegalArgumentException("Unknown objectStackType:  " +objectStackType);
         }
     }
@@ -1464,6 +1465,7 @@ public class SerializerBase{
     }
 
 
+    @Override
     public Object deserialize(DataInput in, int capacity) throws IOException {
         if(capacity==0) return null;
         return deserialize(in, newElsaStack());

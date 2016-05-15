@@ -20,9 +20,9 @@ public class ElsaMaker {
     protected Map<Integer, SerializerBase.Deser> registeredDeser = new HashMap();
 
     /**
-     * 0 is {@link org.mapdb.elsa.ElsaStack.IdentityArray},
+     * 2 is {@link org.mapdb.elsa.ElsaStack.IdentityArray},
      * 1 is {@link org.mapdb.elsa.ElsaStack.NoReferenceStack},
-     * 2 is {@link org.mapdb.elsa.ElsaStack.IdentityHashMapStack},
+     * 0 is {@link org.mapdb.elsa.ElsaStack.IdentityHashMapStack},
      */
     protected int objectStack = 0;
 
@@ -94,12 +94,12 @@ public class ElsaMaker {
         return this;
     }
 
-    public ElsaMaker objectStackDisable() {
+    public ElsaMaker referenceDisable() {
         objectStack = 1;
         return this;
     }
 
-    public ElsaMaker objectStackHashEnable() {
+    public ElsaMaker referenceArrayEnable() {
         objectStack = 2;
         return this;
     }
