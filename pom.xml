@@ -5,7 +5,7 @@
 
     <groupId>org.mapdb</groupId>
     <artifactId>elsa</artifactId>
-    <version>3.0.0-M4-SNAPSHOT</version>
+    <version>3.0.0-M4</version>
     <name>Elsa Serialization</name>
     <description>Java serialization alternative. Its faster, more efficient and compatible.</description>
     <url>http://www.mapdb.org</url>
