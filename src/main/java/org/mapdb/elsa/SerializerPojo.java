@@ -443,14 +443,14 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         assertClassSerializable(obj.getClass());
 
         int head = Header.POJO;
-        ClassInfo classInfo = null;
+        ClassInfo classInfo;
 
         //try to resolve from global class resolver
         int classId = classToId(obj.getClass().getName());
         if(classId>=0){
             head = Header.POJO_RESOLVER;
             classInfo = getClassInfo(classId);
-        }else if((classId = objectStack.resolveClassId(obj.getClass().getName())) <=0) {
+        }else if((classId = objectStack.resolveClassId(obj.getClass().getName())) <0) {
             //class is not known
             notifyMissingClassInfo(obj.getClass());
             classInfo = makeClassInfo(obj.getClass());
@@ -460,6 +460,9 @@ public class SerializerPojo extends SerializerBase implements Serializable{
             out.write(Header.POJO_CLASSINFO);
             ElsaUtil.packInt(out, classId);
             classInfoSerialize(out, classInfo);
+        }else{
+            //classId is known in stream, get it from object stack
+            classInfo = objectStack.resolveClassInfo(classId);
         }
         out.write(head);
         //write class header
