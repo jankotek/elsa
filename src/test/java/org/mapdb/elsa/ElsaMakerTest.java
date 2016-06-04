@@ -16,7 +16,7 @@ public class ElsaMakerTest {
 
     @Test
     public void unknownClass() throws IOException {
-        ClassCallback callback = new ClassCallback() {
+        ElsaClassCallback callback = new ElsaClassCallback() {
             @Override
             public void classMissing(Class clazz) {
                 o = clazz;

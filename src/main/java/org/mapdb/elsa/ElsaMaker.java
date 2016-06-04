@@ -13,7 +13,7 @@ public class ElsaMaker {
 
     protected Object[] singletons = null;
     protected List<Class> classes = new ArrayList<Class>();
-    protected ClassCallback unknownClassNotification = null;
+    protected ElsaClassCallback unknownClassNotification = null;
 
     protected Map<Class, ElsaSerializerBase.Ser> registeredSers = new HashMap();
     protected Map<Class, Integer> registeredSerHeaders = new HashMap();
@@ -51,7 +51,7 @@ public class ElsaMaker {
                 registeredSerHeaders,
                 registeredDeser,
                 unknownClassNotification,
-                new ClassInfoResolver.ArrayBased(classes.toArray(new Class[0]))
+                new ElsaClassInfoResolver.ArrayBased(classes.toArray(new Class[0]))
         );
     }
 
@@ -73,7 +73,7 @@ public class ElsaMaker {
      * @param callback
      * @return
      */
-    public ElsaMaker unknownClassNotification(ClassCallback callback){
+    public ElsaMaker unknownClassNotification(ElsaClassCallback callback){
         this.unknownClassNotification = callback;
         return this;
     }

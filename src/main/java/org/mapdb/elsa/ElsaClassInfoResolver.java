@@ -6,9 +6,9 @@ import java.util.Map;
 /**
  * Created by jan on 4/18/16.
  */
-public interface ClassInfoResolver {
+public interface ElsaClassInfoResolver {
 
-    ClassInfoResolver VOID = new ClassInfoResolver() {
+    ElsaClassInfoResolver VOID = new ElsaClassInfoResolver() {
         @Override
         public ElsaSerializerPojo.ClassInfo getClassInfo(int classId) {
             return null;
@@ -20,7 +20,7 @@ public interface ClassInfoResolver {
         }
     };
 
-    public class ArrayBased implements ClassInfoResolver{
+    public class ArrayBased implements ElsaClassInfoResolver {
 
         protected final ElsaSerializerPojo.ClassInfo[] classInfos;
         protected final Map<String, Integer> reverse = new HashMap();

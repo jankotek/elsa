@@ -532,7 +532,7 @@ public class SerializerPojoTest{
     }
 
     Class lastMissingClass;
-    ClassCallback lastMissingClassCallback = new ClassCallback() {
+    ElsaClassCallback lastMissingClassCallback = new ElsaClassCallback() {
         @Override
         public void classMissing(Class clazz) {
             lastMissingClass = clazz;
@@ -549,7 +549,7 @@ public class SerializerPojoTest{
     @Test public void known_class_not_notified() throws IOException {
         Object bean = new Serialization2Bean();
         ElsaSerializerPojo p = new ElsaSerializerPojo(0, null, null, null, null,  lastMissingClassCallback,
-                new ClassInfoResolver.ArrayBased(new Class[]{bean.getClass()})
+                new ElsaClassInfoResolver.ArrayBased(new Class[]{bean.getClass()})
                 );
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
         assertEquals(lastMissingClass, null);

@@ -43,8 +43,8 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         }
     }
 
-    protected final ClassCallback missingClassNotification;
-    protected final ClassInfoResolver classInfoResolver;
+    protected final ElsaClassCallback missingClassNotification;
+    protected final ElsaClassInfoResolver classInfoResolver;
 
     public ElsaSerializerPojo(){
         this(0, null, null,  null, null, null, null);
@@ -56,11 +56,11 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             Map<Class, Ser> userSer,
             Map<Class, Integer> userSerHeaders,
             Map<Integer, Deser> userDeser,
-            ClassCallback missingClassNotification,
-            ClassInfoResolver classInfoResolver){
+            ElsaClassCallback missingClassNotification,
+            ElsaClassInfoResolver classInfoResolver){
         super(objectStackType, singletons, userSer, userSerHeaders, userDeser);
-        this.missingClassNotification = missingClassNotification!=null?missingClassNotification:ClassCallback.VOID;
-        this.classInfoResolver = classInfoResolver!=null?classInfoResolver:ClassInfoResolver.VOID;
+        this.missingClassNotification = missingClassNotification!=null?missingClassNotification: ElsaClassCallback.VOID;
+        this.classInfoResolver = classInfoResolver!=null?classInfoResolver: ElsaClassInfoResolver.VOID;
     }
 
     public void classInfoSerialize(DataOutput out, ClassInfo ci) throws IOException {

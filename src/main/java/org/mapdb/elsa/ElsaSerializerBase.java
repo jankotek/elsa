@@ -1879,7 +1879,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
         /**
          * Use POJO Serializer to get class structure and set its fields.
-         * Class Info is fetched from ClassInfoResolver
+         * Class Info is fetched from ElsaClassInfoResolver
          */
         int POJO_RESOLVER = 173;
 

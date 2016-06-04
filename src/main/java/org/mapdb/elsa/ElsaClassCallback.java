@@ -3,9 +3,9 @@ package org.mapdb.elsa;
 /**
  * Created by jan on 4/17/16.
  */
-public interface ClassCallback {
+public interface ElsaClassCallback {
 
-    ClassCallback VOID = new ClassCallback() {
+    ElsaClassCallback VOID = new ElsaClassCallback() {
         @Override
         public void classMissing(Class clazz) {
         }
