@@ -27,7 +27,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBase implements ElsaSerializer{
+public class ElsaSerializerBase implements ElsaSerializer{
 
 
     public static abstract class Ser<A> {
@@ -187,11 +187,11 @@ public class SerializerBase implements ElsaSerializer{
             throw new RuntimeException(e); //TODO exception hierarchy
         }
     }
-    public SerializerBase(){
+    public ElsaSerializerBase(){
         this(0, null, null, null, null);
     }
 
-    public SerializerBase(
+    public ElsaSerializerBase(
             int objectStackType,
             Object[] singletons,
             Map<Class, Ser> userSer,
@@ -249,7 +249,7 @@ public class SerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, boolean[] value, ElsaStack objectStack) throws IOException {
                 out.write(Header.ARRAY_BOOLEAN);
                 ElsaUtil.packInt(out, value.length);//write the number of booleans not the number of bytes
-                SerializerBase.writeBooleanArray(out,value);
+                ElsaSerializerBase.writeBooleanArray(out,value);
             }
         });
         ser.put(char[].class, new Ser<char[]>() {
@@ -404,9 +404,9 @@ public class SerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeSet l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREESET);
                 ElsaUtil.packInt(out, l.size());
-                SerializerBase.this.serialize(out, l.comparator(), objectStack);
+                ElsaSerializerBase.this.serialize(out, l.comparator(), objectStack);
                 for (Object o : l)
-                    SerializerBase.this.serialize(out, o, objectStack);
+                    ElsaSerializerBase.this.serialize(out, o, objectStack);
             }
         });
 
@@ -415,10 +415,10 @@ public class SerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeMap<Object,Object> l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREEMAP);
                 ElsaUtil.packInt(out, l.size());
-                SerializerBase.this.serialize(out, l.comparator(), objectStack);
+                ElsaSerializerBase.this.serialize(out, l.comparator(), objectStack);
                 for (Map.Entry o : l.entrySet()) {
-                    SerializerBase.this.serialize(out, o.getKey(), objectStack);
-                    SerializerBase.this.serialize(out, o.getValue(), objectStack);
+                    ElsaSerializerBase.this.serialize(out, o.getKey(), objectStack);
+                    ElsaSerializerBase.this.serialize(out, o.getValue(), objectStack);
                 }
             }
         });
@@ -678,7 +678,7 @@ public class SerializerBase implements ElsaSerializer{
             @Override
             public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
                 int size = ElsaUtil.unpackInt(in);
-                return SerializerBase.readBooleanArray(size, in);
+                return ElsaSerializerBase.readBooleanArray(size, in);
             }
         };
         headerDeser[Header.ARRAY_INT] = new Deser() {
@@ -866,7 +866,7 @@ public class SerializerBase implements ElsaSerializer{
                 Class clazz = loadClass2(in);
                 Object[] s = (Object[]) java.lang.reflect.Array.newInstance(clazz, size);
                 for (int i = 0; i < size; i++){
-                    s[i] = SerializerBase.this.deserialize(in, null);
+                    s[i] = ElsaSerializerBase.this.deserialize(in, null);
                 }
                 return s;
             }
@@ -1396,7 +1396,7 @@ public class SerializerBase implements ElsaSerializer{
     };
 
     protected void serializeClass(DataOutput out, Class clazz) throws IOException {
-        //TODO override in SerializerPojo
+        //TODO override in ElsaSerializerPojo
         out.writeUTF(clazz.getName());
     }
 
@@ -1635,11 +1635,11 @@ public class SerializerBase implements ElsaSerializer{
         return s;
     }
 
-    /** override this method to extend SerializerBase functionality*/
+    /** override this method to extend ElsaSerializerBase functionality*/
     protected void serializeUnknownObject(DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         throw new NotSerializableException("Could not serialize unknown object: "+obj.getClass().getName());
     }
-    /** override this method to extend SerializerBase functionality*/
+    /** override this method to extend ElsaSerializerBase functionality*/
     protected Object deserializeUnknownHeader(DataInput is, int head, ElsaStack objectStack) throws IOException {
         throw new IOException("Unknown serialization header: " + head);
     }

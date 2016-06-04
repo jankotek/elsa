@@ -12,8 +12,8 @@ class MiscTest{
 
     @Test fun arrays_array(){
        fun clone(a1:Any?){
-           val ser = SerializerPojo()
-           assertEquals(a1, SerializerBaseTest.clonePojo(a1, ser))
+           val ser = ElsaSerializerPojo()
+           assertEquals(a1, ElsaSerializerBaseTest.clonePojo(a1, ser))
        }
 
         clone(asList<Any>())
@@ -56,7 +56,7 @@ class MiscTest{
         val e = Extern2()
         e.notSet = "ignore this"
         e.field = "dont ignore"
-        val e2 = SerializerBaseTest.clonePojo(e)
+        val e2 = ElsaSerializerBaseTest.clonePojo(e)
 
         assertEquals(0, e.readCountHere)
         assertEquals(1, e.writeCountHere)

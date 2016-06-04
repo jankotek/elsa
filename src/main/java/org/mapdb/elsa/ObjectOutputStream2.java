@@ -10,10 +10,10 @@ import java.io.OutputStream;
  */
 final class ObjectOutputStream2 extends ObjectOutputStream {
 
-    private SerializerPojo serializerPojo;
+    private ElsaSerializerPojo serializerPojo;
 
 
-    protected ObjectOutputStream2(SerializerPojo serializerPojo, OutputStream out) throws IOException, SecurityException {
+    protected ObjectOutputStream2(ElsaSerializerPojo serializerPojo, OutputStream out) throws IOException, SecurityException {
         super(out);
         this.serializerPojo = serializerPojo;
     }

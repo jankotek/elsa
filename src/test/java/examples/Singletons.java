@@ -2,8 +2,8 @@ package examples;
 
 import org.junit.Test;
 import org.mapdb.elsa.ElsaMaker;
+import org.mapdb.elsa.ElsaSerializerPojo;
 import org.mapdb.elsa.ElsaUtil;
-import org.mapdb.elsa.SerializerPojo;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ public class Singletons {
         data.put("thread", Thread.currentThread());
 
         // initialize serializer
-        SerializerPojo s = new ElsaMaker()
+        ElsaSerializerPojo s = new ElsaMaker()
                 .singletons(Thread.currentThread())  // Current thread is singleton
                 .make();
 

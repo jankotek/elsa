@@ -168,8 +168,8 @@ class CyclicReferenceTest{
 
         val singletons = arrayOf(SINGLETON1, SINGLETON2)
 
-        val ser = SerializerBase(0, singletons, null, null, null)
-        val serPojo = SerializerPojo(0, singletons, null, null, null, null, null)
+        val ser = ElsaSerializerBase(0, singletons, null, null, null)
+        val serPojo = ElsaSerializerPojo(0, singletons, null, null, null, null, null)
 
     }
 
@@ -183,14 +183,14 @@ class CyclicReferenceTest{
     @Test fun run() {
         for(c in cc){
             val v1 = c.random()
-            eq(v1, SerializerBaseTest.clonePojo(v1, ser))
+            eq(v1, ElsaSerializerBaseTest.clonePojo(v1, ser))
         }
     }
 
     @Test fun run2() {
         for(c in ccObj){
             val v1 = c.random()
-            eq(v1, SerializerBaseTest.clonePojo(v1, serPojo))
+            eq(v1, ElsaSerializerBaseTest.clonePojo(v1, serPojo))
         }
     }
 
@@ -202,7 +202,7 @@ class CyclicReferenceTest{
                 v = (c as Container<Any?>).add(v,
                         arrayOf(c2.random(), c2.random(), c2.random()))
 
-                val cloned = SerializerBaseTest.clonePojo(v,ser)
+                val cloned = ElsaSerializerBaseTest.clonePojo(v,ser)
                 eq(v, cloned)
             }catch(e:ClassCastException){
                 if(e.message!!.contains("Comparable").not())
@@ -218,7 +218,7 @@ class CyclicReferenceTest{
                 v = (c as Container<Any?>).add(v,
                         arrayOf(c2.random(), c2.random(), c2.random()))
 
-                val cloned = SerializerBaseTest.clonePojo(v,serPojo)
+                val cloned = ElsaSerializerBaseTest.clonePojo(v,serPojo)
                 eq(v, cloned)
             }catch(e:ClassCastException){
                 if(e.message!!.contains("Comparable").not())
@@ -231,7 +231,7 @@ class CyclicReferenceTest{
         for (c in ccNoNullArray.filter { it is Container }) try {
             val v = c.random()
             (c as Container<Any?>).add(v, arrayOf(v))
-            val cloned = SerializerBaseTest.clonePojo(v,ser)
+            val cloned = ElsaSerializerBaseTest.clonePojo(v,ser)
 
             assertTrue(cloned=== c.getContent(cloned)[0])
         }catch(e:ClassCastException){
@@ -245,7 +245,7 @@ class CyclicReferenceTest{
         for (c in ccObj.filter { it is Container }) try {
             val v = c.random()
             (c as Container<Any?>).add(v, arrayOf(v))
-            val cloned = SerializerBaseTest.clonePojo(v,serPojo)
+            val cloned = ElsaSerializerBaseTest.clonePojo(v,serPojo)
 
             assertTrue(cloned=== c.getContent(cloned)[0])
         }catch(e:ClassCastException){
@@ -263,7 +263,7 @@ class CyclicReferenceTest{
                     continue
                 val v2 = c2.random()
                 (c as Container<Any?>).add(v, arrayOf(v2, v2))
-                val cloned = SerializerBaseTest.clonePojo(v, ser)
+                val cloned = ElsaSerializerBaseTest.clonePojo(v, ser)
                 val clonedContent = c.getContent(cloned)
                 assertEquals(2,clonedContent.size)
                 assertTrue(clonedContent[0]===clonedContent[1])
@@ -282,7 +282,7 @@ class CyclicReferenceTest{
                     continue
                 val v2 = c2.random()
                 (c as Container<Any?>).add(v, arrayOf(v2,v2))
-                val cloned = SerializerBaseTest.clonePojo(v, serPojo)
+                val cloned = ElsaSerializerBaseTest.clonePojo(v, serPojo)
                 val clonedContent = c.getContent(cloned)
                 assertEquals(2,clonedContent.size)
                 assertTrue(clonedContent[0]===clonedContent[1])

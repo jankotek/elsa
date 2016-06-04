@@ -8,14 +8,14 @@ import java.io.*;
 public class ElsaObjectInputStream extends ObjectInputStream {
 
     protected final DataInput input;
-    protected SerializerPojo serializer;
+    protected ElsaSerializerPojo serializer;
 
 
     public ElsaObjectInputStream(InputStream stream) throws IOException {
-        this(new DataInputStream(stream), new SerializerPojo());
+        this(new DataInputStream(stream), new ElsaSerializerPojo());
     }
 
-    public ElsaObjectInputStream(DataInput input, SerializerPojo serializer) throws IOException {
+    public ElsaObjectInputStream(DataInput input, ElsaSerializerPojo serializer) throws IOException {
         super();
         this.input = input;
         this.serializer = serializer;

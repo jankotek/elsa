@@ -15,9 +15,9 @@ public class ElsaMaker {
     protected List<Class> classes = new ArrayList<Class>();
     protected ClassCallback unknownClassNotification = null;
 
-    protected Map<Class, SerializerBase.Ser> registeredSers = new HashMap();
+    protected Map<Class, ElsaSerializerBase.Ser> registeredSers = new HashMap();
     protected Map<Class, Integer> registeredSerHeaders = new HashMap();
-    protected Map<Integer, SerializerBase.Deser> registeredDeser = new HashMap();
+    protected Map<Integer, ElsaSerializerBase.Deser> registeredDeser = new HashMap();
 
     /**
      * 2 is {@link org.mapdb.elsa.ElsaStack.IdentityArray},
@@ -43,8 +43,8 @@ public class ElsaMaker {
      *
      * @return new serializer
      */
-    public SerializerPojo make() {
-        return new SerializerPojo(
+    public ElsaSerializerPojo make() {
+        return new ElsaSerializerPojo(
                 objectStack,
                 singletons,
                 registeredSers,
@@ -78,7 +78,7 @@ public class ElsaMaker {
         return this;
     }
 
-    public <E> ElsaMaker registerSer(int header, Class<E> clazz, SerializerBase.Ser<E> ser){
+    public <E> ElsaMaker registerSer(int header, Class<E> clazz, ElsaSerializerBase.Ser<E> ser){
         if(registeredSers.containsKey(clazz))
             throw new IllegalArgumentException("Class already has Ser registered: "+clazz);
         registeredSers.put(clazz, ser);
@@ -87,7 +87,7 @@ public class ElsaMaker {
         return this;
     }
 
-    public ElsaMaker registerDeser(int header, SerializerBase.Deser deser){
+    public ElsaMaker registerDeser(int header, ElsaSerializerBase.Deser deser){
         if(registeredDeser.get(header)!=null)
             throw new IllegalArgumentException("Deser for header is already registered: "+header);
         registeredDeser.put(header, deser);

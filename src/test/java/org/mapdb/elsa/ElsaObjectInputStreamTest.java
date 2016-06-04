@@ -12,7 +12,7 @@ import static org.junit.Assert.assertEquals;
 public class ElsaObjectInputStreamTest {
 
     @Test public void test_stream_override() throws IOException, ClassNotFoundException {
-        SerializerPojo p = new SerializerPojo();
+        ElsaSerializerPojo p = new ElsaSerializerPojo();
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);

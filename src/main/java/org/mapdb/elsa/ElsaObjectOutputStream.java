@@ -8,16 +8,16 @@ import java.io.*;
 public class ElsaObjectOutputStream extends ObjectOutputStream {
 
     protected final DataOutput out;
-    protected final SerializerPojo serializer;
+    protected final ElsaSerializerPojo serializer;
 
-    public ElsaObjectOutputStream(DataOutput out, SerializerPojo serializer) throws IOException {
+    public ElsaObjectOutputStream(DataOutput out, ElsaSerializerPojo serializer) throws IOException {
         super();
         this.out = out;
         this.serializer = serializer;
     }
 
     public ElsaObjectOutputStream(OutputStream out) throws IOException {
-        this(new DataOutputStream(out), new SerializerPojo());
+        this(new DataOutputStream(out), new ElsaSerializerPojo());
     }
 
     @Override

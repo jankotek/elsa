@@ -10,7 +10,7 @@ public interface ClassInfoResolver {
 
     ClassInfoResolver VOID = new ClassInfoResolver() {
         @Override
-        public SerializerPojo.ClassInfo getClassInfo(int classId) {
+        public ElsaSerializerPojo.ClassInfo getClassInfo(int classId) {
             return null;
         }
 
@@ -22,18 +22,18 @@ public interface ClassInfoResolver {
 
     public class ArrayBased implements ClassInfoResolver{
 
-        protected final SerializerPojo.ClassInfo[] classInfos;
+        protected final ElsaSerializerPojo.ClassInfo[] classInfos;
         protected final Map<String, Integer> reverse = new HashMap();
 
         public ArrayBased(Class[] classes) {
-            classInfos = new SerializerPojo.ClassInfo[classes.length];
+            classInfos = new ElsaSerializerPojo.ClassInfo[classes.length];
             for(int i=0;i<this.classInfos.length;i++){
-                classInfos[i] = SerializerPojo.makeClassInfo(classes[i]);
+                classInfos[i] = ElsaSerializerPojo.makeClassInfo(classes[i]);
                 reverse.put(this.classInfos[i].name, i);
             }
         }
 
-        public ArrayBased(SerializerPojo.ClassInfo[] classInfos) {
+        public ArrayBased(ElsaSerializerPojo.ClassInfo[] classInfos) {
             this.classInfos = classInfos.clone();
             for(int i=0;i<this.classInfos.length;i++){
                 reverse.put(this.classInfos[i].name, i);
@@ -41,7 +41,7 @@ public interface ClassInfoResolver {
         }
 
         @Override
-        public SerializerPojo.ClassInfo getClassInfo(int classId) {
+        public ElsaSerializerPojo.ClassInfo getClassInfo(int classId) {
             return classInfos[classId];
         }
 
@@ -52,7 +52,7 @@ public interface ClassInfoResolver {
         }
     }
 
-    SerializerPojo.ClassInfo getClassInfo(int classId);
+    ElsaSerializerPojo.ClassInfo getClassInfo(int classId);
 
     int classToId(String className);
 }

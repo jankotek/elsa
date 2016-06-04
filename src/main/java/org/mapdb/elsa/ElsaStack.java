@@ -123,7 +123,7 @@ public abstract class ElsaStack{
     public abstract Object getInstance(int i);
 
 
-    private SerializerPojo.ClassInfo[] classInfos = null;
+    private ElsaSerializerPojo.ClassInfo[] classInfos = null;
 
     public int resolveClassId(String clazzName) {
         if(classInfos==null)
@@ -135,9 +135,9 @@ public abstract class ElsaStack{
         return -1;
     }
 
-    public int addClassInfo(SerializerPojo.ClassInfo clazzInfo){
+    public int addClassInfo(ElsaSerializerPojo.ClassInfo clazzInfo){
         if(classInfos==null)
-            classInfos = new SerializerPojo.ClassInfo[0];
+            classInfos = new ElsaSerializerPojo.ClassInfo[0];
 
         int size = classInfos.length;
         classInfos = Arrays.copyOf(classInfos, size+1);
@@ -145,7 +145,7 @@ public abstract class ElsaStack{
         return size;
     }
 
-    public SerializerPojo.ClassInfo resolveClassInfo(int classId) {
+    public ElsaSerializerPojo.ClassInfo resolveClassInfo(int classId) {
         return classInfos[classId];
     }
 

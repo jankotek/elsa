@@ -31,9 +31,9 @@ import java.util.logging.Logger;
  *
  * @author  Jan Kotek
  */
-public class SerializerPojo extends SerializerBase implements Serializable{
+public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializable{
 
-    private static final Logger LOG = Logger.getLogger(SerializerPojo.class.getName());
+    private static final Logger LOG = Logger.getLogger(ElsaSerializerPojo.class.getName());
    // public static final ClassInfo[] EMPTY_CLASS_INFOS = new ClassInfo[0];
 
     static{
@@ -46,11 +46,11 @@ public class SerializerPojo extends SerializerBase implements Serializable{
     protected final ClassCallback missingClassNotification;
     protected final ClassInfoResolver classInfoResolver;
 
-    public SerializerPojo(){
+    public ElsaSerializerPojo(){
         this(0, null, null,  null, null, null, null);
     }
 
-    public SerializerPojo(
+    public ElsaSerializerPojo(
             int objectStackType,
             Object[] singletons,
             Map<Class, Ser> userSer,
@@ -214,7 +214,7 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         public Field field;
 
 //        FieldInfo(String name, boolean primitive, String type, Class<?> clazz) {
-//            this(name, primitive, SerializerPojo.classForNameClassLoader(), type, clazz);
+//            this(name, primitive, ElsaSerializerPojo.classForNameClassLoader(), type, clazz);
 //        }
 //
 //        public FieldInfo(String name, boolean primitive, ClassLoader classLoader, String type, Class<?> clazz) {

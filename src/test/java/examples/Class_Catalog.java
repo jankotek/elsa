@@ -2,7 +2,7 @@ package examples;
 
 import org.junit.Test;
 import org.mapdb.elsa.ElsaMaker;
-import org.mapdb.elsa.SerializerPojo;
+import org.mapdb.elsa.ElsaSerializerPojo;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -34,7 +34,7 @@ public class Class_Catalog {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);
 
-        SerializerPojo serializer = new ElsaMaker().make();
+        ElsaSerializerPojo serializer = new ElsaMaker().make();
 
         serializer.serialize(out2, data);
         int sizeWithoutCatalog = out.toByteArray().length;

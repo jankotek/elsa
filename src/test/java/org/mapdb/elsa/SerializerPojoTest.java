@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class SerializerPojoTest{
 
-    SerializerPojo p = new SerializerPojo();
+    ElsaSerializerPojo p = new ElsaSerializerPojo();
 
     enum Order
     {
@@ -33,13 +33,13 @@ public class SerializerPojoTest{
 
     @Test public void testEnum() throws Exception{
         Order o = Order.ASCENDING;
-        o = SerializerBaseTest.clonePojo(o);
+        o = ElsaSerializerBaseTest.clonePojo(o);
         assertEquals(o,Order.ASCENDING );
         assertEquals(o.ordinal(),Order.ASCENDING .ordinal());
         assertEquals(o.name(),Order.ASCENDING .name());
 
         o = Order.DESCENDING;
-        o = SerializerBaseTest.clonePojo(o);
+        o = ElsaSerializerBaseTest.clonePojo(o);
         assertEquals(o,Order.DESCENDING );
         assertEquals(o.ordinal(),Order.DESCENDING .ordinal());
         assertEquals(o.name(),Order.DESCENDING .name());
@@ -170,32 +170,32 @@ public class SerializerPojoTest{
     Bean2 b2 = new Bean2("aa", "bb", "cc");
 
     @Test public void testGetFieldValue1() throws Exception {
-        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b.getClass()), b));
+        assertEquals("aa", p.getFieldValue(new ElsaSerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b.getClass()), b));
     }
 
     @Test public void testGetFieldValue2() throws Exception {
-        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b.getClass()), b));
+        assertEquals("bb", p.getFieldValue(new ElsaSerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b.getClass()), b));
         assertEquals(0, b.getCalled);
     }
 
     @Test public void testGetFieldValue3() throws Exception {
-        assertEquals("aa", p.getFieldValue(new SerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b2.getClass()), b2));
+        assertEquals("aa", p.getFieldValue(new ElsaSerializerPojo.FieldInfo("field1",String.class.getName(),String.class,b2.getClass()), b2));
     }
 
     @Test public void testGetFieldValue4() throws Exception {
-        assertEquals("bb", p.getFieldValue(new SerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b2.getClass()), b2));
+        assertEquals("bb", p.getFieldValue(new ElsaSerializerPojo.FieldInfo("field2",String.class.getName(),String.class,b2.getClass()), b2));
         assertEquals(0, b2.getCalled);
     }
 
     @Test public void testGetFieldValue5() throws Exception {
-        assertEquals("cc", p.getFieldValue(new SerializerPojo.FieldInfo("field3",String.class.getName(),String.class,b2.getClass()), b2));
+        assertEquals("cc", p.getFieldValue(new ElsaSerializerPojo.FieldInfo("field3",String.class.getName(),String.class,b2.getClass()), b2));
     }
 
 
 
     @Test public void testSerializable() throws Exception {
 
-        assertEquals(b, SerializerBaseTest.clonePojo(b));
+        assertEquals(b, ElsaSerializerBaseTest.clonePojo(b));
     }
 
 
@@ -203,7 +203,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b.getKey());
 
-        AbstractMap.SimpleEntry bx = SerializerBaseTest.clonePojo(b);
+        AbstractMap.SimpleEntry bx = ElsaSerializerBaseTest.clonePojo(b);
         assertEquals(bx, b);
         assert (bx.getKey() == bx.getValue());
 
@@ -213,7 +213,7 @@ public class SerializerPojoTest{
         AbstractMap.SimpleEntry b = new AbstractMap.SimpleEntry("abcd", null);
         b.setValue(b);
 
-        AbstractMap.SimpleEntry bx =SerializerBaseTest.clonePojo(b);
+        AbstractMap.SimpleEntry bx = ElsaSerializerBaseTest.clonePojo(b);
         assertTrue(bx == bx.getValue());
         assertEquals(bx.getKey(), "abcd");
 
@@ -225,7 +225,7 @@ public class SerializerPojoTest{
         l.add("123");
         l.add(l);
 
-        ArrayList l2 = SerializerBaseTest.clonePojo(l);
+        ArrayList l2 = ElsaSerializerBaseTest.clonePojo(l);
 
         assertTrue(l2.size() == 2);
         assertEquals(l2.get(0), "123");
@@ -316,8 +316,8 @@ public class SerializerPojoTest{
         Set set = db.getHashSet("testSerializerPojo");
         set.add(new test_pojo_reload_TestClass("test"));
         db.commit();
-//        System.out.println(((SerializerPojo)db.defaultSerializer).registered);
-        int prevsize = ((SerializerPojo)db.getDefaultSerializer()).registered.size();
+//        System.out.println(((ElsaSerializerPojo)db.defaultSerializer).registered);
+        int prevsize = ((ElsaSerializerPojo)db.getDefaultSerializer()).registered.size();
 
         db.close();
 
@@ -325,8 +325,8 @@ public class SerializerPojoTest{
         set = db.getHashSet("testSerializerPojo");
         set.add(new test_pojo_reload_TestClass("test2"));
         db.commit();
-        int newsize = ((SerializerPojo)db.getDefaultSerializer()).registered.size();
-//        System.out.println(((SerializerPojo)db.defaultSerializer).registered);
+        int newsize = ((ElsaSerializerPojo)db.getDefaultSerializer()).registered.size();
+//        System.out.println(((ElsaSerializerPojo)db.defaultSerializer).registered);
         db.close();
 
         assertEquals(prevsize, newsize);
@@ -344,7 +344,7 @@ public class SerializerPojoTest{
         t.aa = 12;
         t.ss = "bb";
         t.bb = 13;
-        t = (test_transient) SerializerBaseTest.clonePojo(t);
+        t = (test_transient) ElsaSerializerBaseTest.clonePojo(t);
         assertEquals(0,t.aa);
         assertEquals(null,t.ss);
         assertEquals(13,t.bb);
@@ -406,7 +406,7 @@ public class SerializerPojoTest{
 //    public void class_registered_after_commit(){
 //        DB db = DBMaker.memoryDB().transactionDisable().make();
 //
-//        SerializerPojo ser = (SerializerPojo) db.getDefaultSerializer();
+//        ElsaSerializerPojo ser = (ElsaSerializerPojo) db.getDefaultSerializer();
 //        assertEquals(0, ser.getClassInfos.run().length);
 //        assertEquals(0, db.unknownClasses.size());
 //
@@ -454,7 +454,7 @@ public class SerializerPojoTest{
     public void testWriteReplace() throws IOException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m), SerializerBaseTest.clonePojo(m));
+        assertEquals(new LinkedHashMap(m), ElsaSerializerBaseTest.clonePojo(m));
     }
 
 //  TODO replicate without mapdb
@@ -478,7 +478,7 @@ public class SerializerPojoTest{
     public void testWriteReplaceWrap() throws IOException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m), SerializerBaseTest.clonePojo(m));
+        assertEquals(new LinkedHashMap(m), ElsaSerializerBaseTest.clonePojo(m));
     }
 
 // TODO reproduce this test without mapdb
@@ -513,7 +513,7 @@ public class SerializerPojoTest{
 
     @Test(expected = ClassCastException.class)
     public void java_serialization_writeReplace_in_object_graph() throws IOException, ClassNotFoundException {
-        SerializerBaseTest.cloneJava(new WriteReplaceBB());
+        ElsaSerializerBaseTest.cloneJava(new WriteReplaceBB());
     }
 
 // TODO replicate without mapdb
@@ -528,7 +528,7 @@ public class SerializerPojoTest{
 
 
     @Test public void java_serialization(){
-        assertTrue(SerializerPojo.usesAdvancedSerialization(ExtHashMap.class));
+        assertTrue(ElsaSerializerPojo.usesAdvancedSerialization(ExtHashMap.class));
     }
 
     Class lastMissingClass;
@@ -541,14 +541,14 @@ public class SerializerPojoTest{
 
     @Test public void unknown_class_notified() throws IOException {
         Object bean = new Serialization2Bean();
-        SerializerPojo p = new SerializerPojo(0, null, null, null, null, lastMissingClassCallback, null);
+        ElsaSerializerPojo p = new ElsaSerializerPojo(0, null, null, null, null, lastMissingClassCallback, null);
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
         assertEquals(lastMissingClass, bean.getClass());
     }
 
     @Test public void known_class_not_notified() throws IOException {
         Object bean = new Serialization2Bean();
-        SerializerPojo p = new SerializerPojo(0, null, null, null, null,  lastMissingClassCallback,
+        ElsaSerializerPojo p = new ElsaSerializerPojo(0, null, null, null, null,  lastMissingClassCallback,
                 new ClassInfoResolver.ArrayBased(new Class[]{bean.getClass()})
                 );
         p.serialize(new DataOutputStream(new ByteArrayOutputStream()), bean);
@@ -584,7 +584,7 @@ public class SerializerPojoTest{
         w.someClass = String.class;
 
         assertEquals(w, outputStreamClone(w));
-        assertEquals(w, SerializerBaseTest.clonePojo(w, p));
+        assertEquals(w, ElsaSerializerBaseTest.clonePojo(w, p));
     }
 
 
@@ -596,28 +596,28 @@ public class SerializerPojoTest{
 
         DataInput in = new DataInputStream(new ByteArrayInputStream(bout.toByteArray()));
 
-        assertEquals(SerializerBase.Header.POJO_CLASSINFO, in.readUnsignedByte());
+        assertEquals(ElsaSerializerBase.Header.POJO_CLASSINFO, in.readUnsignedByte());
         assertEquals(0, ElsaUtil.unpackInt(in));
         assertEquals(p.makeClassInfo(IntBean.class), p.classInfoDeserialize(in));
 
-        assertEquals(SerializerBase.Header.POJO, in.readUnsignedByte());
+        assertEquals(ElsaSerializerBase.Header.POJO, in.readUnsignedByte());
         assertEquals(0, ElsaUtil.unpackInt(in)); //class id
         assertEquals(1, ElsaUtil.unpackInt(in)); //number of fields
         assertEquals(0, ElsaUtil.unpackInt(in)); //field id
-        assertEquals(SerializerBase.Header.INT_5, in.readUnsignedByte()); //field value
+        assertEquals(ElsaSerializerBase.Header.INT_5, in.readUnsignedByte()); //field value
 
         assertEquals(-1, ((InputStream)in).read());
     }
 
     @Test public void classInfoClone() throws IOException {
-        SerializerPojo.ClassInfo c = p.makeClassInfo(IntBean.class);
+        ElsaSerializerPojo.ClassInfo c = p.makeClassInfo(IntBean.class);
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(bout);
         p.classInfoSerialize(out, c);
 
         DataInput in = new DataInputStream(new ByteArrayInputStream(bout.toByteArray()));
-        SerializerPojo.ClassInfo c2 = p.classInfoDeserialize(in);
+        ElsaSerializerPojo.ClassInfo c2 = p.classInfoDeserialize(in);
 
         assertEquals(c, c2);
     }

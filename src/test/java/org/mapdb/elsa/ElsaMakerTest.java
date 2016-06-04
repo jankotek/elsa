@@ -22,8 +22,8 @@ public class ElsaMakerTest {
                 o = clazz;
             }
         };
-        SerializerPojo s = new ElsaMaker().unknownClassNotification(callback).make();
-        SerializerBaseTest.clonePojo(new Serialization2Bean(), s);
+        ElsaSerializerPojo s = new ElsaMaker().unknownClassNotification(callback).make();
+        ElsaSerializerBaseTest.clonePojo(new Serialization2Bean(), s);
         assertEquals(Serialization2Bean.class, o);
     }
 
@@ -37,7 +37,7 @@ public class ElsaMakerTest {
 
     int deserCounter = 0;
 
-    SerializerBase.Deser<String2> deser = new SerializerBase.Deser<String2>() {
+    ElsaSerializerBase.Deser<String2> deser = new ElsaSerializerBase.Deser<String2>() {
         @Override
         public String2 deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             deserCounter++;
@@ -47,7 +47,7 @@ public class ElsaMakerTest {
 
     int serCounter = 0;
 
-    SerializerBase.Ser<String2> ser = new SerializerBase.Ser<String2>() {
+    ElsaSerializerBase.Ser<String2> ser = new ElsaSerializerBase.Ser<String2>() {
         @Override
         public void serialize(DataOutput out, String2 value, ElsaStack objectStack) throws IOException {
             serCounter++;
@@ -57,34 +57,34 @@ public class ElsaMakerTest {
 
     @Test public void serDeser() throws IOException {
 
-        SerializerPojo s = new ElsaMaker()
+        ElsaSerializerPojo s = new ElsaMaker()
                 .registerDeser(1, deser)
                 .registerSer(1, String2.class, ser)
                 .make();
 
         String2 str = new String2("adqwdwq");
-        String2 str2 = SerializerBaseTest.clonePojo(str, s);
+        String2 str2 = ElsaSerializerBaseTest.clonePojo(str, s);
         assertEquals(str.s,str2.s);
         assertEquals(1, deserCounter);
         assertEquals(1, serCounter);
     }
 
     @Test public void objectStackNoRef(){
-        SerializerPojo ser = new ElsaMaker().referenceDisable().make();
+        ElsaSerializerPojo ser = new ElsaMaker().referenceDisable().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.NoReferenceStack);
     }
 
 
     @Test public void objectStackHash(){
-        SerializerPojo ser = new ElsaMaker().make();
+        ElsaSerializerPojo ser = new ElsaMaker().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.IdentityHashMapStack);
     }
 
 
     @Test public void objectStackDefault(){
-        SerializerPojo ser = new ElsaMaker().referenceArrayEnable().make();
+        ElsaSerializerPojo ser = new ElsaMaker().referenceArrayEnable().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
         assertTrue(stack instanceof ElsaStack.IdentityArray);
     }

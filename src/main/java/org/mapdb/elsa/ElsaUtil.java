@@ -1,7 +1,6 @@
 package org.mapdb.elsa;
 
 import java.io.*;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -12,7 +11,7 @@ public final class ElsaUtil {
 
     private ElsaUtil(){}
 
-    public static <E> E clone(SerializerPojo serializer, E data) throws IOException {
+    public static <E> E clone(ElsaSerializerPojo serializer, E data) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);
         serializer.serialize(out2, data);
@@ -196,7 +195,7 @@ public final class ElsaUtil {
 
     static public void packInt(DataOutput out, int value) throws IOException {
         // Optimize for the common case where value is small. This is particular important where our caller
-        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
+        // is ElsaSerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
         // credit Max Bolingbroke https://github.com/jankotek/MapDB/pull/489
 
         int shift = (value & ~0x7F); //reuse variable
@@ -249,7 +248,7 @@ public final class ElsaUtil {
      */
     static public Class[] findClasses(Iterable e){
         final Set<Class> classes = new TreeSet();
-        SerializerPojo p = new SerializerPojo(0, null, null, null, null, new ClassCallback() {
+        ElsaSerializerPojo p = new ElsaSerializerPojo(0, null, null, null, null, new ClassCallback() {
             @Override
             public void classMissing(Class clazz) {
                 classes.add(clazz);

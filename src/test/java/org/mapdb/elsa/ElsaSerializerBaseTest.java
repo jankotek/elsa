@@ -27,7 +27,7 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class SerializerBaseTest{
+public class ElsaSerializerBaseTest {
 
 
     @Test public void testInt() throws IOException{
@@ -52,7 +52,7 @@ public class SerializerBaseTest{
     void serSize(int expected, Object val) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);
-        new SerializerPojo().serialize(out2, val);
+        new ElsaSerializerPojo().serialize(out2, val);
         assertEquals(expected, out.toByteArray().length);
     }
 
@@ -483,10 +483,10 @@ public class SerializerBaseTest{
     }
 
     static <E> E clonePojo(E value) throws IOException {
-        return (E) clonePojo(value, new SerializerPojo());
+        return (E) clonePojo(value, new ElsaSerializerPojo());
     }
 
-    static <E> E clonePojo(E value, SerializerBase p) throws IOException {
+    static <E> E clonePojo(E value, ElsaSerializerBase p) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream out2 = new DataOutputStream(out);
         p.serialize(out2, value);
@@ -514,8 +514,8 @@ public class SerializerBaseTest{
 
     @SuppressWarnings({  "rawtypes" })
     @Test public void testHeaderUnique() throws IllegalAccessException {
-        SerializerBase b = new SerializerBase();
-        Class c = SerializerBase.Header.class;
+        ElsaSerializerBase b = new ElsaSerializerBase();
+        Class c = ElsaSerializerBase.Header.class;
         Set<Integer> s = new TreeSet<Integer>();
         for (Field f : c.getDeclaredFields()) {
             f.setAccessible(true);
@@ -524,9 +524,9 @@ public class SerializerBaseTest{
             assertTrue("Value already used: " + value, !s.contains(value));
             s.add(value);
 
-            if(value!=SerializerBase.Header.POJO_RESOLVER
-                    && value!=SerializerBase.Header.POJO
-                    && value!=SerializerBase.Header.POJO_CLASSINFO)
+            if(value!= ElsaSerializerBase.Header.POJO_RESOLVER
+                    && value!= ElsaSerializerBase.Header.POJO
+                    && value!= ElsaSerializerBase.Header.POJO_CLASSINFO)
                 assertNotNull("deser does not contain value: "+value + " - "+f.getName(), b.headerDeser[value]);
 
         }
@@ -593,7 +593,7 @@ public class SerializerBaseTest{
     static final Object singleton = new Object();
 
     @Test public void singletons() throws IOException {
-        SerializerPojo s = new ElsaMaker().singletons(singleton).make();
+        ElsaSerializerPojo s = new ElsaMaker().singletons(singleton).make();
         assertTrue(singleton == clonePojo(singleton, s));
     }
 }

@@ -10,14 +10,14 @@ import java.io.ObjectStreamClass;
  */
 final class ObjectInputStream2 extends ObjectInputStream {
 
-    private SerializerPojo serializerPojo;
+    private ElsaSerializerPojo serializerPojo;
 
     // One-element cache to handle the common case where we immediately resolve a descriptor to its class.
     // Unlike most ObjecTInputStream subclasses we actually have to look up the class to find the descriptor!
     private ObjectStreamClass lastDescriptor;
     private Class lastDescriptorClass;
 
-    protected ObjectInputStream2(SerializerPojo serializerPojo, InputStream in) throws IOException, SecurityException {
+    protected ObjectInputStream2(ElsaSerializerPojo serializerPojo, InputStream in) throws IOException, SecurityException {
         super(in);
         this.serializerPojo = serializerPojo;
     }

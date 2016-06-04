@@ -2,8 +2,7 @@ package examples;
 
 import org.junit.Test;
 import org.mapdb.elsa.ElsaMaker;
-import org.mapdb.elsa.ElsaUtil;
-import org.mapdb.elsa.SerializerPojo;
+import org.mapdb.elsa.ElsaSerializerPojo;
 
 import java.io.*;
 import java.util.HashMap;
@@ -22,7 +21,7 @@ public class Hello_World {
         data.put(1,"one");
 
         //construct Elsa serializer
-        SerializerPojo serializer = new ElsaMaker().make();
+        ElsaSerializerPojo serializer = new ElsaMaker().make();
 
         //Elsa takes DataOutput and DataInput. Construct them on top of OutputStream
         ByteArrayOutputStream out = new ByteArrayOutputStream();
