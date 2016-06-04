@@ -23,7 +23,7 @@ public class ElsaObjectInputStream extends ObjectInputStream {
 
     @Override
     protected Object readObjectOverride() throws IOException, ClassNotFoundException {
-        return serializer.deserialize(input, -1);
+        return serializer.deserialize(input);
     }
 
     @Override

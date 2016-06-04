@@ -24,7 +24,7 @@ public class ElsaObjectOutputStreamTest {
 
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
 
-        assertEquals("aaa", p.deserialize(in, -1));
+        assertEquals("aaa", p.deserialize(in));
     }
 
 

@@ -17,7 +17,7 @@ public final class ElsaUtil {
         serializer.serialize(out2, data);
 
         DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
-        return (E) serializer.deserialize(ins, -1);
+        return (E) serializer.deserialize(ins);
     }
 
 

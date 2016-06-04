@@ -27,7 +27,7 @@ public class SerializerPojoTest{
     }
 
     private Object deserialize(byte[] buf) throws IOException {
-        return p.deserialize(new DataInputStream(new ByteArrayInputStream(buf)),-1);
+        return p.deserialize(new DataInputStream(new ByteArrayInputStream(buf)));
     }
 
 

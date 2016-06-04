@@ -32,7 +32,7 @@ public class Hello_World {
         //now deserialize data using DataInput
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
 
-        Map data2 = (Map) serializer.deserialize(in, -1);
+        Map data2 = (Map) serializer.deserialize(in);
         assertEquals(data, data2);
     }
 

@@ -492,7 +492,7 @@ public class ElsaSerializerBaseTest {
         p.serialize(out2, value);
 
         DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
-        return (E) p.deserialize(ins, -1);
+        return (E) p.deserialize(ins);
     }
 
     static <E> E cloneJava(E value) throws IOException {

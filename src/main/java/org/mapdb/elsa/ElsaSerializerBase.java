@@ -1464,10 +1464,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
         return new String(b);
     }
 
-
     @Override
-    public Object deserialize(DataInput in, int capacity) throws IOException {
-        if(capacity==0) return null;
+    public Object deserialize(DataInput in) throws IOException {
         return deserialize(in, newElsaStack());
     }
 

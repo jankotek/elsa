@@ -10,5 +10,5 @@ import java.io.IOException;
 public interface ElsaSerializer {
     void serialize(DataOutput out, Object obj) throws IOException;
 
-    Object deserialize(DataInput in, int capacity) throws IOException;
+    Object deserialize(DataInput in) throws IOException;
 }
