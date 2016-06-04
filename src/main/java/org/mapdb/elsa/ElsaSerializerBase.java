@@ -1465,8 +1465,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
     }
 
     @Override
-    public Object deserialize(DataInput in) throws IOException {
-        return deserialize(in, newElsaStack());
+    public <E> E deserialize(DataInput in) throws IOException {
+        return (E)deserialize(in, newElsaStack());
     }
 
     public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {
@@ -1475,7 +1475,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
         int oldObjectStackSize = objectStack.getSize();
 
-        Object ret = null;
+        Object ret;
         Deser deser = headerDeser[head];
         if(deser!=null){
             ret = deser.deserialize(in, objectStack);
@@ -1489,14 +1489,6 @@ public class ElsaSerializerBase implements ElsaSerializer{
         }
 
         return ret;
-    }
-
-    //TODO this is unused
-    public void assertSerializable(Object o){
-        if(o!=null && !(o instanceof Serializable)
-                && !singletonsReverse.containsKey(o)){
-            throw new IllegalArgumentException("Not serializable: "+o.getClass());
-        }
     }
 
 

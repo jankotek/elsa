@@ -17,8 +17,7 @@ public class Hello_World {
 
     @Test public void simple() throws IOException {
         //some data to be serialized
-        Map data = new HashMap();
-        data.put(1,"one");
+        String data = "Hello World";
 
         //construct Elsa serializer
         ElsaSerializerPojo serializer = new ElsaMaker().make();
@@ -32,7 +31,7 @@ public class Hello_World {
         //now deserialize data using DataInput
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
 
-        Map data2 = (Map) serializer.deserialize(in);
+        String data2 = serializer.deserialize(in);
         assertEquals(data, data2);
     }
 
