@@ -65,10 +65,15 @@ public abstract class ElsaStack{
 
     }
 
-    public static final class IdentityHashMapStack extends ElsaStack{
 
-        private Map<Object, Integer> data = new IdentityHashMap<Object, Integer>();
-        private List<Object> reverse = new ArrayList<Object>();
+    public static final class MapStack extends ElsaStack{
+
+        final Map<Object, Integer> data;
+        private final List<Object> reverse = new ArrayList<Object>();
+
+        public MapStack(Map<Object, Integer> data) {
+            this.data = data;
+        }
 
         @Override
         public void add(Object o) {
@@ -93,6 +98,7 @@ public abstract class ElsaStack{
             return reverse.get(i);
         }
     }
+
 
     public static final class NoReferenceStack extends ElsaStack{
 

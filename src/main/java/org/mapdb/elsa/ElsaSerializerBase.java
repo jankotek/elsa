@@ -214,7 +214,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
             if(!userDeser.keySet().equals(new TreeSet(userSerHeaders.values())))
                 throw new IllegalArgumentException();
 
-            //regirester serializers for each class
+            //register serializers for each class
             for(Class clazz:userSer.keySet()){
                 int userHeader = userSerHeaders.get(clazz);
                 ser.put(clazz, new UserSer(userHeader, userSer.get(clazz)));
@@ -1028,13 +1028,23 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
     protected ElsaStack newElsaStack() {
         switch(objectStackType){
+            case 3: return new ElsaStack.MapStack(new HashMap());
             case 2: return new ElsaStack.IdentityArray();
             case 1: return new ElsaStack.NoReferenceStack();
-            case 0: return new ElsaStack.IdentityHashMapStack();
+            case 0: return new ElsaStack.MapStack(new IdentityHashMap());
             default: throw new IllegalArgumentException("Unknown objectStackType:  " +objectStackType);
         }
     }
 
+    @Override
+    public <E> E clone(E value) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream out2 = new DataOutputStream(out);
+        serialize(out2, value);
+
+        DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
+        return (E) deserialize(ins);
+    }
 
     public void serialize(final DataOutput out, final Object obj, ElsaStack objectStack) throws IOException {
 

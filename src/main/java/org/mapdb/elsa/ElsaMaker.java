@@ -20,9 +20,11 @@ public class ElsaMaker {
     protected Map<Integer, ElsaSerializerBase.Deser> registeredDeser = new HashMap();
 
     /**
+     *
+     * 3 is {@link org.mapdb.elsa.ElsaStack.MapStack} with HashMap,
      * 2 is {@link org.mapdb.elsa.ElsaStack.IdentityArray},
      * 1 is {@link org.mapdb.elsa.ElsaStack.NoReferenceStack},
-     * 0 is {@link org.mapdb.elsa.ElsaStack.IdentityHashMapStack},
+     * 0 is {@link org.mapdb.elsa.ElsaStack.MapStack} with IdentityHashMap,
      */
     protected int objectStack = 0;
 
@@ -104,4 +106,11 @@ public class ElsaMaker {
         return this;
     }
 
+    public ElsaMaker referenceHashMapEnable() {
+        objectStack = 3;
+        return this;
+    }
+
+
 }
+

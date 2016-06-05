@@ -8,7 +8,10 @@ import java.io.IOException;
  * Created by jan on 5/15/16.
  */
 public interface ElsaSerializer {
+
     void serialize(DataOutput out, Object obj) throws IOException;
 
     <E> E deserialize(DataInput in) throws IOException;
+
+    <E> E clone(E obj) throws IOException;
 }

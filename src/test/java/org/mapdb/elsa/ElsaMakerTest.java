@@ -6,6 +6,8 @@ import org.junit.Test;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -76,12 +78,21 @@ public class ElsaMakerTest {
     }
 
 
-    @Test public void objectStackHash(){
+    @Test public void objectStackIdentHash(){
         ElsaSerializerPojo ser = new ElsaMaker().make();
         Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
-        assertTrue(stack instanceof ElsaStack.IdentityHashMapStack);
+        assertTrue(stack instanceof ElsaStack.MapStack);
+        assertTrue(((ElsaStack.MapStack)stack).data instanceof IdentityHashMap);
     }
 
+
+
+    @Test public void objectStackHash(){
+        ElsaSerializerPojo ser = new ElsaMaker().referenceHashMapEnable().make();
+        Object stack = Reflection.method("newElsaStack").withReturnType(ElsaStack.class).in(ser).invoke();
+        assertTrue(stack instanceof ElsaStack.MapStack);
+        assertTrue(((ElsaStack.MapStack)stack).data instanceof HashMap);
+    }
 
     @Test public void objectStackDefault(){
         ElsaSerializerPojo ser = new ElsaMaker().referenceArrayEnable().make();
