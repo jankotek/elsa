@@ -13,46 +13,186 @@ It has good compatibility with Java Serialization,
 but is faster and more space efficient.
 Elsa is great for storing objects on disk, network transfer, deep cloning etc..
 
+Elsa handles cyclic references and Java Serialization features such as `Externalizable` or
+`writeReplace()`.
+
 Elsa was originally part of [MapDB jar](http://www.mapdb.org), 
 but was moved into separate library.
 
-Support
-------------
+Install and use
+------------------
 
-Bug reports should go to Github Issue tracker.
+Elsa is available in Maven repository. Jar files can be  [downloaded here](http://mvnrepository.com/artifact/org.mapdb/elsa), currently Elsa has no dependencies and requires Java6. Maven snipped is bellow, latest VERSION is [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mapdb/elsa/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mapdb%22%20AND%20a%3Aelsa)
 
-For questions and other suggestions use MapDB support channels (chat, mailing list, subreddit).
+```xml
+<dependency>
+    <groupId>org.mapdb</groupId>
+    <artifactId>mapdb</artifactId>
+    <version>VERSION</version>
+</dependency>
+```
 
-We also offer professional support and consulting.
-More [details](http://www.mapdb.org/support/).
+Code examples are on [github](https://github.com/jankotek/elsa/tree/master/src/test/java/examples).
 
 Hello world
 ------------
 
-Maven snippet, VERSION is [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mapdb/elsa/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mapdb%22%20AND%20a%3Aelsa)
+Here is simple [Hello World example](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/Hello_World.java):
 
-```xml
-    <dependency>
-        <groupId>org.mapdb</groupId>
-        <artifactId>mapdb</artifactId>
-        <version>VERSION</version>
-    </dependency>
+```java
+import org.mapdb.elsa.*;
+
+// data to be serialized
+String data = "Hello World";
+
+// Construct Elsa Serializer
+// Elsa uses maker to configure extra features
+ElsaSerializer serializer = new ElsaMaker().make();
+
+// Elsa Serializer takes DataOutput and DataInput.
+// Use streams to create it.
+ByteArrayOutputStream out = new ByteArrayOutputStream();
+DataOutputStream out2 = new DataOutputStream(out);
+
+// write data into OutputStream
+serializer.serialize(out2, data);
+
+// Construct DataInput
+DataInputStream in = new DataInputStream(
+    new ByteArrayInputStream(out.toByteArray()));
+
+// now deserialize data using DataInput
+String data2 = serializer.deserialize(in);
 ```
 
-Code examples are on [github](https://github.com/jankotek/elsa/tree/master/src/test/java/examples)
+Support
+------------
+
+Bug reports go to [Issue tracker](https://github.com/jankotek/elsa/issues).
+
+For questions and suggestions use [MapDB support channels](http://www.mapdb.org/support/) (chat, mailing list, subreddit). We also provide professional [support and consulting](http://kotek.net/consulting/).
+
+Documentation is provided in form of
+[examples](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/References.java).
+TODO javadoc on web.
+
+Serializers
+-----------------------
+
+To speedup serialization Elsa comes with serializers for well known `java.lang` and `java.util` classes.
+Serializers are recursive and will continue graph traversal,
+for example `Map` serializer will continue graph traversal over keys and values.
+
+Users can also install their own serializers.
+
+For objects with no serializer Elsa will use slower field traversal to dive into Object Graph.
+
+### Default serializers
+By default Elsa has serializers for following classes:
+
+- All primitive types and their arrays: `double`, `long`, `int`, `byte[]`...
+
+- All primitive wrappers: `Double`, `Long`, `Integer`...
+
+- Generic array `Object[]`
+
+- Collections: `ArrayList`, `LinkedList`, `HashSet`, `LinkedHashSet` and `TreeSet`
+
+- Maps: `HashMap`, `LinkedHashMap`, `TreeMap` and `Properties`
+
+- `BigDecimal`, `BigInteger`, `UUID` and `Date`
+
+- `java.lang.Class`
+
+
+### Custom serializers
+
+It is possible to [register custom serializers](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/Custom_Serializers.java).
+Those are part of graph traversal, and are applied on objects inside graph (collections entries and field values).
+
+TODO better documentation for custom serializers
+
+References
+--------------------
+Consider following example:
+
+```java
+List list = ArrayList();
+list.add(list);
+Object a = "some huge object";
+list.add(a);
+list.add(a);
+```
+That is Cyclic Reference and could send graph traversal into infinitive loop.
+Object `a` is in graph twice and could cause space overhead if serialized twice.
+To prevent that Elsa on serialization tracks already visited objects in `IdentityHashMap`.
+Secondary visit will only write number as reference.
+On deserialization references are restored and identity is preserved.
+
+Reference tracking also works for user defined serializers, and for
+collection serializers.
+
+Maintaining `IdentityHashMap` has some overhead.
+So there is an option to disable this feature completely. Use `ElsaMaker.referenceDisable()` to disable reference tracking
+
+Or `IdentityHashMap` can be replaced with simple `Object[]` where for-loop with identity `==` check on each item.
+That is faster on very small graphs with only a few items. Use `ElsaMaker.referenceArrayEnable()`
+to enable identity array checks.
+
+Finally there is an option to *deduplicate* references by replacing `IdentityHashMap`
+with regular `HashMap`. In this case two equal objects which are not identical,
+will become identical after deserialization. This adds some overhead on serialization for hashing
+and equality check, but has no overhead on deserialization.
+Use `ElsaMaker.referenceHashMapEnable()` to enable it.
+
+There is a [reference handling example](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/References.java)
+with all configuration options.
+
+Java Serialization compatibility
+---------------------------------
+
+Elsa tries to be compatible with Java Serialization. We require all classes
+to implement `Serializable`. We handle `Externalizable` interfaces correctly.
+Elsa also provides hacked `java.io.ObjectInputStream` and
+`java.io.ObjectOutputStream`. And finally it handles less known `writeReplace` methods and so on.
+
+In some cases Elsa will fallback into using Java Serialization.
+
+Alternatives
+--------------
+
+TODO
+
+Deep Cloning
+----------------
+
+Use `serializer.clone(object)`.
+
+TODO
 
 Class Catalog
 ------------------
-Serialization format usually stores class structure information (field names, field order, data types) together with serialized data. Size of serialized data can be greatly reduced by externalizing class structure information. In example bellow it is 5 bytes versus 55 bytes.
+Serialization format usually stores class structure
+metadata (field names, field order, data types) together
+with serialized data. Size of serialized data can be greatly
+reduced by externalizing class structure information. In
+example bellow it is 5 bytes versus 55 bytes.
 
-Elsa can store class structure information outside of serialized data, in Class Catalog. It is an array of classes. In binary format the class itself, is just replaced by index in Class Catalog.
+Elsa can store class structure information outside of
+serialized data. There are more ways. MapDB p Class
+Catalog to handle class format versions, renamed fields and so on.
 
-Class Catalog is pretty flexible, but here we will only cover basic cases.
+Simpler and more accessible way assumes that class format
+never changes. That serialization and deserialization
+share classes with exactly the same structure
+(no renamed fields etc). In that case we can use
+simple class registration:
 
-Register classes
-----------------------
 
-Best way to create class catalog is to register classes in `ElsaMaker`.
+### Register classes
+
+Simplest way to externalize class structure metadata
+is to register classes in `ElsaMaker`.
 Each registered class is parsed into structural information
 and added into Class Catalog.
 
@@ -61,17 +201,16 @@ here is shorter version:
 
 ```java
 ElsaSerializer serializer = new ElsaMaker()
-    //this registers Bean class into class catalog
-    .registerClasses(Bean.class, Bean2.class)
-    .make();
+//this registers Bean class into class catalog
+.registerClasses(Bean.class, Bean2.class)
+.make();
 ```
 
-In binary format the class is represended by its index in an array.
+In binary format the class is represented by its index in an array.
 So its critical to **register classes at the same order every time**. Otherwise
 you will be unable to deserialize data.
 
-Unknown class callback
--------------------------
+### Unknown class callback
 
 Elsa has callback to notify user about classes not presented in Class Catalog.
 This way you assemble list of all classes used in an object graph.
@@ -98,43 +237,6 @@ ElsaSerializer s = new ElsaMaker()
     .make();
 ```
 
-In binary format the singleton is represended by its index in an array.
+In binary format the singleton is represented by its index in an array.
 So its critical to **register singletons at the same order every time**. Otherwise
 you will be unable to deserialize data.
-
-Cyclic reference handling
-------------------------------
-
-By default Elsa handles cyclic references. On second apparence of an object
-in graph, only reference to previous instance is written.
-On deserialization reference equality is preserved.
-Elsa also handles cyclic references etc..
-
-Tracking references has overhead. So it can be disabled with `ElsaMaker.referenceDisable()`.
-
-Elsa has two ways to track duplicate references:
-* Already serialized objects are placed into `IdentityHashMap<Object,Integer>`. To find duplicates we check the map content.
-* Already serialized objects are placed into `Object[]`. To find duplicates we need to traverse entire array and do reference equality check `==`.
- This can be enabled with `ElsaMaker.referenceArrayEnable()`
-
-`IdentityHashMap` works quite well for large graphs and is enabled by defualt.
-Array works better well for small object graphs (upto 60 objects). But fails missarably on large object graphs.
-
-TODO benchmarks
-
-Custom serializers
------------------------
-
-It is possible to [register custom serializers](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/Custom_Serializers.java). Those are applied even for objects inside graph (field values).
-
-TODO better documentation
-
-Java compatibility
---------------------
-
-Elsa tries to be compatible with Java Serialization. We require all classes
-to implement `Serializable`. We handle `Externalizable` interfaces correctly.
-Elsa also provides hacked `java.io.ObjectInputStream` and
-`java.io.ObjectOutputStream`. And finally it handles less known `writeReplace` methods and so on.
-
-In some cases Elsa will fallback into using Java Serialization.
