@@ -66,7 +66,10 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     public void classInfoSerialize(DataOutput out, ClassInfo ci) throws IOException {
         out.writeUTF(ci.name);
         out.writeBoolean(ci.isEnum);
-        out.writeBoolean(ci.useObjectStream);
+        int flags =
+                (ci.externalizable ? 2 : 0) +
+                (ci.useObjectStream ? 1 : 0);
+        out.write(flags);
         if(ci.useObjectStream)
             return; //no fields
 
@@ -82,9 +85,11 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         String className = in.readUTF();
         Class clazz = null;
         boolean isEnum = in.readBoolean();
-        boolean isExternalizable = in.readBoolean();
+        int flags = in.readUnsignedByte();
+        boolean externalizable = (flags&2) != 0;
+        boolean useObjectStream = (flags&1) != 0;
 
-        int fieldsNum = isExternalizable? 0 : ElsaUtil.unpackInt(in);
+        int fieldsNum = useObjectStream? 0 : ElsaUtil.unpackInt(in);
         FieldInfo[] fields = new FieldInfo[fieldsNum];
         for (int j = 0; j < fieldsNum; j++) {
             String fieldName = in.readUTF();
@@ -98,7 +103,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
                     primitive?null:loadClass2(type),
                     clazz);
         }
-        return new ClassInfo(className, fields,isEnum,isExternalizable);
+        return new ClassInfo(className, fields, isEnum, externalizable, useObjectStream);
     }
 
 
@@ -141,12 +146,15 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
 
         public final boolean isEnum;
 
+        public final boolean externalizable;
         public final boolean useObjectStream;
 
-        public ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean isExternalizable) {
+        public ClassInfo(final String name, final FieldInfo[] fields, final boolean isEnum, final boolean externalizable,
+                         final boolean useObjectStream) {
             this.name = name;
             this.isEnum = isEnum;
-            this.useObjectStream = isExternalizable;
+            this.externalizable=externalizable;
+            this.useObjectStream = useObjectStream;
 
             this.fields = fields.clone();
 
@@ -169,11 +177,9 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             return objectStreamFields;
         }
 
-
         @Override public String toString(){
             return super.toString()+ "["+name+"]";
         }
-
 
         @Override
         public boolean equals(Object o) {
@@ -183,6 +189,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             ClassInfo classInfo = (ClassInfo) o;
 
             if (isEnum != classInfo.isEnum) return false;
+            if (externalizable != classInfo.externalizable) return false;
             if (useObjectStream != classInfo.useObjectStream) return false;
             if (name != null ? !name.equals(classInfo.name) : classInfo.name != null) return false;
             // Probably incorrect - comparing Object[] arrays with Arrays.equals
@@ -195,6 +202,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             int result = name != null ? name.hashCode() : 0;
             result = 31 * result + (fields != null ? Arrays.hashCode(fields) : 0);
             result = 31 * result + (isEnum ? 1 : 0);
+            result = 31 * result + (externalizable ? 1 : 0);
             result = 31 * result + (useObjectStream ? 1 : 0);
             return result;
         }
@@ -285,8 +293,9 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
 
 
     public static ClassInfo makeClassInfo(Class clazz){
-        final boolean advancedSer = usesAdvancedSerialization(clazz);
-        ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
+        final boolean externalizable = Externalizable.class.isAssignableFrom(clazz);
+        final boolean advancedSer = !externalizable && usesAdvancedSerialization(clazz);
+        ObjectStreamField[] streamFields = externalizable || advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
         for (int i = 0; i < fields.length; i++) {
             ObjectStreamField sf = streamFields[i];
@@ -298,31 +307,12 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
                     clazz);
         }
 
-        return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
-    }
-
-
-    public ClassInfo makeClassInfo(String className){
-        Class clazz = loadClass2(className);
-        final boolean advancedSer = usesAdvancedSerialization(clazz);
-        ObjectStreamField[] streamFields = advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
-        FieldInfo[] fields = new FieldInfo[streamFields.length];
-        for (int i = 0; i < fields.length; i++) {
-            ObjectStreamField sf = streamFields[i];
-            String type = sf.getType().getName();
-            fields[i] = new FieldInfo(
-                    sf.getName(),
-                    type,
-                    sf.isPrimitive() ? null : loadClass2(type),
-                    clazz);
-        }
-
-        return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), advancedSer);
+        return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), externalizable, advancedSer);
     }
 
     protected static boolean usesAdvancedSerialization(Class<?> clazz) {
         if(Externalizable.class.isAssignableFrom(clazz))
-            return true;
+            return false;
         try {
             if(clazz.getDeclaredMethod("readObject",ObjectInputStream.class)!=null)
                 return true;
@@ -480,6 +470,12 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             ElsaUtil.packInt(out, ordinal);
         }
 
+        if(classInfo.externalizable){
+            ElsaObjectOutputStream out2 = new ElsaObjectOutputStream(out, this);
+            ((Externalizable)obj).writeExternal(out2);
+            return;
+        }
+
         ObjectStreamField[] fields = fieldsForClass(obj.getClass());
         ElsaUtil.packInt(out, fields.length);
 
@@ -545,11 +541,16 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
 
             objectStack.add(o);
 
+            if(classInfo.externalizable){
+                ElsaObjectInputStream in2 = new ElsaObjectInputStream(in, this);
+                ((Externalizable)o).readExternal(in2);
+                return o;
+            }
 
             int fieldCount = ElsaUtil.unpackInt(in);
             for (int i = 0; i < fieldCount; i++) {
                 int fieldId = ElsaUtil.unpackInt(in);
-                FieldInfo f = classInfo.fields[fieldId];
+                 FieldInfo f = classInfo.fields[fieldId];
                 Object fieldValue = deserialize(in, objectStack);
                 setFieldValue(f, o, fieldValue);
             }
