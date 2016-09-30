@@ -292,7 +292,20 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     }
 
 
+    //TODO this should not be static? classes if different shapes within the same JVM?
+    static protected Map<Class, ClassInfo> classInfoCache = new ConcurrentHashMap<Class, ClassInfo>();
+
     public static ClassInfo makeClassInfo(Class clazz){
+        ClassInfo ci = classInfoCache.get(clazz);
+        if(ci==null){
+            //this is thread safe, in worst case ClassInfo will be created multiple times
+            ci = makeClassInfo2(clazz);
+            classInfoCache.put(clazz, ci);
+        }
+        return ci;
+    }
+
+    protected static ClassInfo makeClassInfo2(Class clazz){
         final boolean externalizable = Externalizable.class.isAssignableFrom(clazz);
         final boolean advancedSer = !externalizable && usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = externalizable || advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);

@@ -19,6 +19,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Serializer which uses 'header byte' to serialize/deserialize
@@ -154,6 +155,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
 
     protected final Map<Class, Ser> ser = new IdentityHashMap<Class, Ser>();
+    protected final Map<String, Class> classCache = new ConcurrentHashMap<String, Class>();
 
     protected final Deser[] headerDeser = new Deser[255];
     protected final Deser[] userDeser;
@@ -162,7 +164,18 @@ public class ElsaSerializerBase implements ElsaSerializer{
     protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
     protected Class<?> loadClass(String name) throws ClassNotFoundException {
-        return Class.forName(name, true, classLoader);
+        return loadClass(name, classLoader);
+    }
+
+        protected Class<?> loadClass(String name, ClassLoader classLoader) throws ClassNotFoundException {
+        Class c = classCache.get(name);
+        if(c==null) {
+            //load class and put it into cache
+            //this is thread safe, worst case is that `Class.forName` will be called more than once at initialization, which is fine
+            c = Class.forName(name, true, classLoader);
+            classCache.put(name, c);
+        }
+        return c;
     }
 
 
