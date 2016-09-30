@@ -34,7 +34,7 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.0.1</kotlin.version>
+        <kotlin.version>1.0.4</kotlin.version>
         <java.target.version>1.6</java.target.version>
         <java.source.version>1.6</java.source.version>
 
@@ -147,11 +147,13 @@
                     <goals>
                         <goal>test-compile</goal>
                     </goals>
-                    <configuration>
-                        <sourceDirs>
-                            <source>src/test/java</source>
-                        </sourceDirs>
-                    </configuration>
+                </execution>
+                <execution>
+                    <id>compile</id>
+                    <phase>process-sources</phase>
+                    <goals>
+                        <goal>compile</goal>
+                    </goals>
                 </execution>
             </executions>
         </plugin>
