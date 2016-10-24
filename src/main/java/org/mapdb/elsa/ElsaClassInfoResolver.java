@@ -3,9 +3,7 @@ package org.mapdb.elsa;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by jan on 4/18/16.
- */
+
 public interface ElsaClassInfoResolver {
 
     ElsaClassInfoResolver VOID = new ElsaClassInfoResolver() {
@@ -25,10 +23,10 @@ public interface ElsaClassInfoResolver {
         protected final ElsaSerializerPojo.ClassInfo[] classInfos;
         protected final Map<String, Integer> reverse = new HashMap();
 
-        public ArrayBased(Class[] classes) {
+        public ArrayBased(Class[] classes, ClassLoader classLoader) {
             classInfos = new ElsaSerializerPojo.ClassInfo[classes.length];
             for(int i=0;i<this.classInfos.length;i++){
-                classInfos[i] = ElsaSerializerPojo.makeClassInfo(classes[i]);
+                classInfos[i] = ElsaSerializerPojo.makeClassInfo(classes[i], classLoader);
                 reverse.put(this.classInfos[i].name, i);
             }
         }

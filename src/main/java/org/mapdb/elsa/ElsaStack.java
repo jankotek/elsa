@@ -3,11 +3,23 @@ package org.mapdb.elsa;
 import java.util.*;
 
 /**
- * Utility class similar to ArrayList, but with fast identity search.
+ * ElsaStack contains already serialized object.
+ * Elsa check for backward references, by comparing newly serialized objects agaist Stack content.
+ * This comparation could be major overhead, so there are three strategies (Stack implementations) for object comparation:
+ * <p/>
+ * - IdentityHashMap is good for large object arrays, is enabled by defautl
+ * <p/>
+ * - HashMap is very slow (full Object.equals()), but performs deduplication.
+ * <p/>
+ * - Array with linear search, smaller overhead, but performance degrades fast. Better for tiny objects (5 items)
+ * <p/>
+ * - No check. Good for primitive objects. Backward (more precisely cyclic) can cause infinitive loop.
+ *
  */
 public abstract class ElsaStack{
 
 
+    /** uses array with linear identity (==) search. Uses little memory, but performance degrades fast with number of objects on stack */
     public static final class IdentityArray extends ElsaStack{
 
         private int size ;
@@ -66,6 +78,7 @@ public abstract class ElsaStack{
     }
 
 
+    /** Uses map (typically {@link IdentityHashMap) to resolve objects. */
     public static final class MapStack extends ElsaStack{
 
         final Map<Object, Integer> data;
@@ -99,7 +112,7 @@ public abstract class ElsaStack{
         }
     }
 
-
+    /** No backward references are resolved, no stack is maintained */
     public static final class NoReferenceStack extends ElsaStack{
 
         @Override

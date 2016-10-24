@@ -11,6 +11,7 @@ import java.util.Map;
  */
 public class ElsaMaker {
 
+    protected ClassLoader classLoader = null;
     protected Object[] singletons = null;
     protected List<Class> classes = new ArrayList<Class>();
     protected ElsaClassCallback unknownClassNotification = null;
@@ -47,13 +48,14 @@ public class ElsaMaker {
      */
     public ElsaSerializerPojo make() {
         return new ElsaSerializerPojo(
+                classLoader,
                 objectStack,
                 singletons,
                 registeredSers,
                 registeredSerHeaders,
                 registeredDeser,
                 unknownClassNotification,
-                new ElsaClassInfoResolver.ArrayBased(classes.toArray(new Class[0]))
+                new ElsaClassInfoResolver.ArrayBased(classes.toArray(new Class[0]), classLoader)
         );
     }
 
@@ -111,6 +113,11 @@ public class ElsaMaker {
         return this;
     }
 
+    /** set class loader used by Elsa to load classes. Change it if you are getting `ClassNotFoundException`. */
+    public ElsaMaker classLoader(ClassLoader classLoader){
+        this.classLoader = classLoader;
+        return this;
+    }
 
 }
 

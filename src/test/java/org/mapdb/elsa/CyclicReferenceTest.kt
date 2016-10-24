@@ -1,8 +1,7 @@
 package org.mapdb.elsa
 
-import org.junit.Test
-
 import org.junit.Assert.*
+import org.junit.Test
 import java.io.Serializable
 import java.util.*
 
@@ -168,8 +167,8 @@ class CyclicReferenceTest{
 
         val singletons = arrayOf(SINGLETON1, SINGLETON2)
 
-        val ser = ElsaSerializerBase(0, singletons, null, null, null)
-        val serPojo = ElsaSerializerPojo(0, singletons, null, null, null, null, null)
+        val ser = ElsaSerializerBase(null, 0, singletons, null, null, null)
+        val serPojo = ElsaSerializerPojo(null, 0, singletons, null, null, null, null, null)
 
     }
 

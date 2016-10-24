@@ -47,10 +47,11 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     protected final ElsaClassInfoResolver classInfoResolver;
 
     public ElsaSerializerPojo(){
-        this(0, null, null,  null, null, null, null);
+        this(null, 0, null, null,  null, null, null, null);
     }
 
     public ElsaSerializerPojo(
+            ClassLoader classLoader,
             int objectStackType,
             Object[] singletons,
             Map<Class, Ser> userSer,
@@ -58,7 +59,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             Map<Integer, Deser> userDeser,
             ElsaClassCallback missingClassNotification,
             ElsaClassInfoResolver classInfoResolver){
-        super(objectStackType, singletons, userSer, userSerHeaders, userDeser);
+        super(classLoader, objectStackType, singletons, userSer, userSerHeaders, userDeser);
         this.missingClassNotification = missingClassNotification!=null?missingClassNotification: ElsaClassCallback.VOID;
         this.classInfoResolver = classInfoResolver!=null?classInfoResolver: ElsaClassInfoResolver.VOID;
     }
@@ -295,17 +296,20 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     //TODO this should not be static? classes if different shapes within the same JVM?
     static protected Map<Class, ClassInfo> classInfoCache = new ConcurrentHashMap<Class, ClassInfo>();
 
-    public static ClassInfo makeClassInfo(Class clazz){
+    public static ClassInfo makeClassInfo(Class clazz, ClassLoader classLoader){
+        classLoader = defaultClassLoaderIfNull(classLoader);
         ClassInfo ci = classInfoCache.get(clazz);
         if(ci==null){
             //this is thread safe, in worst case ClassInfo will be created multiple times
-            ci = makeClassInfo2(clazz);
+            ci = makeClassInfo2(clazz, classLoader);
             classInfoCache.put(clazz, ci);
         }
         return ci;
     }
 
-    protected static ClassInfo makeClassInfo2(Class clazz){
+    protected static ClassInfo makeClassInfo2(Class clazz, ClassLoader classLoader){
+        classLoader = defaultClassLoaderIfNull(classLoader);
+
         final boolean externalizable = Externalizable.class.isAssignableFrom(clazz);
         final boolean advancedSer = !externalizable && usesAdvancedSerialization(clazz);
         ObjectStreamField[] streamFields = externalizable || advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
@@ -316,7 +320,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             fields[i] = new FieldInfo(
                     sf.getName(),
                     type,
-                    sf.isPrimitive() ? null : loadClass3(type, Thread.currentThread().getContextClassLoader()),
+                    sf.isPrimitive() ? null : loadClass3(type, classLoader),
                     clazz);
         }
 
@@ -456,7 +460,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         }else if((classId = objectStack.resolveClassId(obj.getClass().getName())) <0) {
             //class is not known
             notifyMissingClassInfo(obj.getClass());
-            classInfo = makeClassInfo(obj.getClass());
+            classInfo = makeClassInfo(obj.getClass(), classLoader);
 
             //write unknown class info into local class catalog
             classId = objectStack.addClassInfo(classInfo);

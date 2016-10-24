@@ -11,7 +11,7 @@ public class ElsaObjectOutputStream extends OutputStream implements ObjectOutput
     protected final ElsaSerializerPojo serializer;
 
     public ElsaObjectOutputStream(DataOutput out, ElsaSerializerPojo serializer) throws IOException {
-        super();
+         super();
         this.out = out;
         this.serializer = serializer;
     }

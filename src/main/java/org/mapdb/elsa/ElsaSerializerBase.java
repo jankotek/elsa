@@ -160,8 +160,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
     protected final Deser[] headerDeser = new Deser[255];
     protected final Deser[] userDeser;
 
-    //TODO configurable class loader?
-    protected final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    protected final ClassLoader classLoader;
 
     protected Class<?> loadClass(String name) throws ClassNotFoundException {
         return loadClass(name, classLoader);
@@ -201,15 +200,17 @@ public class ElsaSerializerBase implements ElsaSerializer{
         }
     }
     public ElsaSerializerBase(){
-        this(0, null, null, null, null);
+        this(null, 0, null, null, null, null);
     }
 
     public ElsaSerializerBase(
+            ClassLoader classLoader,
             int objectStackType,
             Object[] singletons,
             Map<Class, Ser> userSer,
             Map<Class, Integer> userSerHeaders,
             Map<Integer, Deser> userDeser){
+        this.classLoader = defaultClassLoaderIfNull(classLoader);
         this.objectStackType = objectStackType;
         this.singletons = singletons!=null? singletons.clone():new Object[0];
         for(int i=0;i<this.singletons.length;i++){
@@ -241,6 +242,10 @@ public class ElsaSerializerBase implements ElsaSerializer{
         }else{
             this.userDeser = new Deser[0];
         }
+    }
+
+    protected static ClassLoader defaultClassLoaderIfNull(ClassLoader classLoader) {
+        return classLoader!=null ? classLoader : Thread.currentThread().getContextClassLoader();
     }
 
 
