@@ -260,41 +260,41 @@ public class SerializerPojoTest{
         assertEquals(0,t.aa);
         assertEquals(null,t.ss);
         assertEquals(13,t.bb);
-    }
+                }
 
-    /* clone value using serialization */
-    public static <E> E outputStreamClone(E value){
-        try{
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            new ObjectOutputStream(out).writeObject(value);
-            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
-            return (E) in.readObject();
-        }catch(Exception ee){
-            throw new IOError(ee);
-        }
-    }
+                /* clone value using serialization */
+                public static <E> E outputStreamClone(E value){
+                    try{
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        new ObjectOutputStream(out).writeObject(value);
+                        ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(out.toByteArray()));
+                        return (E) in.readObject();
+                    }catch(Exception ee){
+                        throw new IOError(ee);
+                    }
+                }
 
-    //this can not be serialized, it alwaes throws exception on serialization
-    static final class RealClass implements Serializable, Externalizable{
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            throw new Error();
-        }
+                //this can not be serialized, it alwaes throws exception on serialization
+                static final class RealClass implements Serializable, Externalizable{
+                    @Override
+                    public void writeExternal(ObjectOutput out) throws IOException {
+                        throw new Error();
+                    }
 
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            throw new Error();
-        }
-    }
+                    @Override
+                    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+                        throw new Error();
+                    }
+                }
 
-    //this is placeholder which gets serialized instead
-    static final class PlaceHolder implements Serializable{
+                //this is placeholder which gets serialized instead
+                static final class PlaceHolder implements Serializable{
 
-    }
+                }
 
-    public static class MM extends AbstractMap implements Serializable{
+                public static class MM extends AbstractMap implements Serializable{
 
-        Map m = new HashMap();
+                    Map m = new HashMap();
 
         private Object writeReplace() throws ObjectStreamException {
             return new LinkedHashMap(this);
@@ -349,7 +349,7 @@ public class SerializerPojoTest{
 
 
     @Test public void java_serialization(){
-        assertTrue(ElsaSerializerPojo.usesAdvancedSerialization(ExtHashMap.class));
+        assertTrue(ElsaSerializerPojo.useJavaSerialization(ExtHashMap.class));
     }
 
     Class lastMissingClass;

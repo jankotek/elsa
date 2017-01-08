@@ -39,7 +39,7 @@ public class ElsaMakerTest {
 
     int deserCounter = 0;
 
-    ElsaSerializerBase.Deser<String2> deser = new ElsaSerializerBase.Deser<String2>() {
+    ElsaSerializerBase.Deserializer<String2> deser = new ElsaSerializerBase.Deserializer<String2>() {
         @Override
         public String2 deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             deserCounter++;
@@ -49,7 +49,7 @@ public class ElsaMakerTest {
 
     int serCounter = 0;
 
-    ElsaSerializerBase.Ser<String2> ser = new ElsaSerializerBase.Ser<String2>() {
+    ElsaSerializerBase.Serializer<String2> ser = new ElsaSerializerBase.Serializer<String2>() {
         @Override
         public void serialize(DataOutput out, String2 value, ElsaStack objectStack) throws IOException {
             serCounter++;
@@ -60,8 +60,8 @@ public class ElsaMakerTest {
     @Test public void serDeser() throws IOException {
 
         ElsaSerializerPojo s = new ElsaMaker()
-                .registerDeser(1, deser)
-                .registerSer(1, String2.class, ser)
+                .registerDeserializer(1, deser)
+                .registerSerializer(1, String2.class, ser)
                 .make();
 
         String2 str = new String2("adqwdwq");

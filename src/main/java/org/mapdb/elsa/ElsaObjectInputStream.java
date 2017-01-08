@@ -3,7 +3,8 @@ package org.mapdb.elsa;
 import java.io.*;
 
 /**
- * Created by jan on 4/17/16.
+ * Wraps DataInput and Elsa deserializer and provides {@link InputStream} and {@link ObjectInput}
+ * This is an alternative to {@link ObjectInputStream}.
  */
 public class ElsaObjectInputStream extends InputStream implements ObjectInput {
 
@@ -11,10 +12,22 @@ public class ElsaObjectInputStream extends InputStream implements ObjectInput {
     protected ElsaSerializerPojo serializer;
 
 
+    /** Take InputStream and use default Elsa settings to construct new deserializer
+     *
+     * @param stream InputStream from which deserialized object will be read from
+     * @throws IOException
+     */
     public ElsaObjectInputStream(InputStream stream) throws IOException {
         this(new DataInputStream(stream), new ElsaSerializerPojo());
     }
 
+    /**
+     * Construct new
+     *
+     * @param input DataInput from which deserialized objects will be read from
+     * @param serializer Elsa deserializer used to read objects
+     * @throws IOException
+     */
     public ElsaObjectInputStream(DataInput input, ElsaSerializerPojo serializer) throws IOException {
         this.input = input;
         this.serializer = serializer;

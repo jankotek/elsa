@@ -6,7 +6,7 @@ import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 
 /**
- * Created by jan on 3/28/16.
+ * Used internally to serializer objects which use Java Serialization hacks (writeReplace, writeExternal... methods).
  */
 final class ObjectOutputStream2 extends ObjectOutputStream {
 

@@ -27,7 +27,7 @@ Elsa is available in Maven repository. Jar files can be  [downloaded here](http:
 ```xml
 <dependency>
     <groupId>org.mapdb</groupId>
-    <artifactId>mapdb</artifactId>
+    <artifactId>elsa</artifactId>
     <version>VERSION</version>
 </dependency>
 ```
@@ -39,14 +39,16 @@ Hello world
 
 Here is simple [Hello World example](https://github.com/jankotek/elsa/blob/master/src/test/java/examples/Hello_World.java):
 
+
+<!---#file#doc/intro_hello_world.java--->
 ```java
-import org.mapdb.elsa.*;
+// import org.mapdb.elsa.*;
 
 // data to be serialized
 String data = "Hello World";
 
 // Construct Elsa Serializer
-// Elsa uses maker to configure extra features
+// Elsa uses Maker Pattern to configure extra features
 ElsaSerializer serializer = new ElsaMaker().make();
 
 // Elsa Serializer takes DataOutput and DataInput.
@@ -59,7 +61,7 @@ serializer.serialize(out2, data);
 
 // Construct DataInput
 DataInputStream in = new DataInputStream(
-    new ByteArrayInputStream(out.toByteArray()));
+        new ByteArrayInputStream(out.toByteArray()));
 
 // now deserialize data using DataInput
 String data2 = serializer.deserialize(in);

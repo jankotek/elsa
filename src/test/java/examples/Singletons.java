@@ -3,7 +3,6 @@ package examples;
 import org.junit.Test;
 import org.mapdb.elsa.ElsaMaker;
 import org.mapdb.elsa.ElsaSerializerPojo;
-import org.mapdb.elsa.ElsaUtil;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,7 +30,7 @@ public class Singletons {
 
         // data can be serialized using s.serialize.. methods
         // in this case we just do binary clone
-        Map data2 = ElsaUtil.clone(s, data);
+        Map data2 = s.clone(data);
 
         // singleton is restored and reference equality is preserved
         assertTrue(data2.get("thread") == Thread.currentThread());

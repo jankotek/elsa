@@ -26,7 +26,7 @@ public class Custom_Serializers {
 
 
     /** deserializer which converts binary form into String2*/
-    ElsaSerializerBase.Deser<String2> deser = new ElsaSerializerBase.Deser<String2>() {
+    ElsaSerializerBase.Deserializer<String2> deser = new ElsaSerializerBase.Deserializer<String2>() {
         @Override
         public String2 deserialize(DataInput in, ElsaStack objectStack) throws IOException {
             return new String2(in.readUTF());
@@ -35,7 +35,7 @@ public class Custom_Serializers {
 
 
     /** serializer which converts String2 into binary form */
-    ElsaSerializerBase.Ser<String2> ser = new ElsaSerializerBase.Ser<String2>() {
+    ElsaSerializerBase.Serializer<String2> ser = new ElsaSerializerBase.Serializer<String2>() {
         @Override
         public void serialize(DataOutput out, String2 value, ElsaStack objectStack) throws IOException {
             out.writeUTF(value.s);
@@ -46,9 +46,9 @@ public class Custom_Serializers {
 
         ElsaSerializerPojo s = new ElsaMaker()
                 // register deserializer under STRING2_HEADER
-                .registerDeser(STRING2_HEADER, deser)
+                .registerDeserializer(STRING2_HEADER, deser)
                 // register serializer with String2.class and STRING2_HEADEr
-                .registerSer(STRING2_HEADER, String2.class, ser)
+                .registerSerializer(STRING2_HEADER, String2.class, ser)
                 .make();
 
         DataOutput out = new DataOutputStream(new ByteArrayOutputStream());

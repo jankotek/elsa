@@ -27,7 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
- * Serializer which handles POJO, object graphs etc.
+ * Advanced Elsa Serializer.
+ * On top of well known objects from {@link ElsaSerializerBase},
+ * it can serialize any class by analyzing its fields.
+ * <p/>
+ * TODO more javadoc
  *
  * @author  Jan Kotek
  */
@@ -54,9 +58,9 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             ClassLoader classLoader,
             int objectStackType,
             Object[] singletons,
-            Map<Class, Ser> userSer,
+            Map<Class, Serializer> userSer,
             Map<Class, Integer> userSerHeaders,
-            Map<Integer, Deser> userDeser,
+            Map<Integer, Deserializer> userDeser,
             ElsaClassCallback missingClassNotification,
             ElsaClassInfoResolver classInfoResolver){
         super(classLoader, objectStackType, singletons, userSer, userSerHeaders, userDeser);
@@ -97,11 +101,11 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             boolean primitive = in.readBoolean();
             String type = in.readUTF();
             if(clazz == null)
-                clazz = loadClass2(className);
+                clazz = loadClassCachedUnchecked(className);
 
             fields[j] = new FieldInfo(fieldName,
                     type,
-                    primitive?null:loadClass2(type),
+                    primitive?null: loadClassCachedUnchecked(type),
                     clazz);
         }
         return new ClassInfo(className, fields, isEnum, externalizable, useObjectStream);
@@ -311,7 +315,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         classLoader = defaultClassLoaderIfNull(classLoader);
 
         final boolean externalizable = Externalizable.class.isAssignableFrom(clazz);
-        final boolean advancedSer = !externalizable && usesAdvancedSerialization(clazz);
+        final boolean advancedSer = !externalizable && useJavaSerialization(clazz);
         ObjectStreamField[] streamFields = externalizable || advancedSer ? new ObjectStreamField[0] : makeFieldsForClass(clazz);
         FieldInfo[] fields = new FieldInfo[streamFields.length];
         for (int i = 0; i < fields.length; i++) {
@@ -320,14 +324,20 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             fields[i] = new FieldInfo(
                     sf.getName(),
                     type,
-                    sf.isPrimitive() ? null : loadClass3(type, classLoader),
+                    sf.isPrimitive() ? null : loadClassStaticUnchecked(type, classLoader),
                     clazz);
         }
 
         return new ClassInfo(clazz.getName(), fields, clazz.isEnum(), externalizable, advancedSer);
     }
 
-    protected static boolean usesAdvancedSerialization(Class<?> clazz) {
+    /** if class uses 'Java Serialization' trick such as `Externalizable`, `writeObject`, `writeReplace`... Elsa will use
+     * {@link ObjectOutputStream} to serialize it.
+     *
+     * @param clazz
+     * @return true if Java Serialization should be used to serialize it
+     */
+    protected static boolean useJavaSerialization(Class<?> clazz) {
         if(Externalizable.class.isAssignableFrom(clazz))
             return false;
         try {
@@ -357,7 +367,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         Class su = clazz.getSuperclass();
         if(su==Object.class || su==null)
             return false;
-        return usesAdvancedSerialization(su);
+        return useJavaSerialization(su);
     }
 
 
@@ -544,7 +554,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
                 return o;
             }
 
-            Class<?> clazz = loadClass(classInfo.name);
+            Class<?> clazz = loadClassCached(classInfo.name);
             if (!Serializable.class.isAssignableFrom(clazz))
                 throw new NotSerializableException(clazz.getName());
 
@@ -578,10 +588,10 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         }
     }
 
-    private InputStream wrapStream(DataInput in) {
+    private InputStream wrapStream(DataInput in) throws IOException {
         if(in instanceof InputStream)
             return (InputStream) in;
-        return new ElsaUtil.DataInputToStream(in);
+        return new ElsaObjectInputStream(in, this);
     }
 
 
@@ -592,9 +602,18 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     static private Method androidConstructorJelly = null;
     static private Object constructorId;
 
+
+    static private Class loadClassStaticUnchecked(String name, ClassLoader classLoader){
+        try {
+            return Class.forName(name, true, classLoader);
+        } catch (ClassNotFoundException e) {
+            throw new ElsaException.ClassNotFound(e);
+        }
+    }
+
     static{
         try{
-            Class<?> clazz = loadClass3("sun.reflect.ReflectionFactory", Thread.currentThread().getContextClassLoader());
+            Class<?> clazz = loadClassStaticUnchecked("sun.reflect.ReflectionFactory", Thread.currentThread().getContextClassLoader());
             if(clazz!=null){
                 Method getReflectionFactory = clazz.getMethod("getReflectionFactory");
                 sunReflFac = getReflectionFactory.invoke(null);

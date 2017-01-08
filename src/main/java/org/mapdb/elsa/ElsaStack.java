@@ -4,12 +4,12 @@ import java.util.*;
 
 /**
  * ElsaStack contains already serialized object.
- * Elsa check for backward references, by comparing newly serialized objects agaist Stack content.
+ * Elsa check for backward references, by comparing newly serialized objects against Stack content.
  * This comparation could be major overhead, so there are three strategies (Stack implementations) for object comparation:
  * <p/>
- * - IdentityHashMap is good for large object arrays, is enabled by defautl
+ * - IdentityHashMap is good for large object arrays, is enabled by default
  * <p/>
- * - HashMap is very slow (full Object.equals()), but performs deduplication.
+ * - HashMap is very slow (full Object.equals()), but performs full deduplication.
  * <p/>
  * - Array with linear search, smaller overhead, but performance degrades fast. Better for tiny objects (5 items)
  * <p/>

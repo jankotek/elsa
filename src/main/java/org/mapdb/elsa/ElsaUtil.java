@@ -1,6 +1,8 @@
 package org.mapdb.elsa;
 
 import java.io.*;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -10,53 +12,6 @@ import java.util.TreeSet;
 public final class ElsaUtil {
 
     private ElsaUtil(){}
-
-    public static <E> E clone(ElsaSerializerPojo serializer, E data) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DataOutputStream out2 = new DataOutputStream(out);
-        serializer.serialize(out2, data);
-
-        DataInputStream ins = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
-        return (E) serializer.deserialize(ins);
-    }
-
-
-    /**
-     * Wraps {@code DataInput} into {@code InputStream}
-     */
-    public static final class DataInputToStream extends InputStream {
-
-        protected final DataInput in;
-
-        public DataInputToStream(DataInput in) {
-            this.in = in;
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            in.readFully(b,off,len);
-            return len;
-        }
-
-        @Override
-        public long skip(long n) throws IOException {
-            n = Math.min(n, Integer.MAX_VALUE);
-            //$DELAY$
-            return in.skipBytes((int) n);
-        }
-
-        @Override
-        public void close() throws IOException {
-            if(in instanceof Closeable)
-                ((Closeable) in).close();
-        }
-
-        @Override
-        public int read() throws IOException {
-            return in.readUnsignedByte();
-        }
-    }
-
 
     /**
      * Unpack int value from the input stream.
@@ -246,8 +201,13 @@ public final class ElsaUtil {
      * @param e
      * @return
      */
-    static public Class[] findClasses(Iterable e){
-        final Set<Class> classes = new TreeSet();
+    static public Class[] findUnknownClassesInCollection(Iterable e){
+        final Set<Class> classes = new TreeSet(new Comparator<Class>() {
+            @Override
+            public int compare(Class o1, Class o2) {
+                return o1.getName().compareTo(o2.getName());
+            }
+        });
         ElsaSerializerPojo p = new ElsaSerializerPojo(null, 0, null, null, null, null, new ElsaClassCallback() {
             @Override
             public void classMissing(Class clazz) {
@@ -262,5 +222,11 @@ public final class ElsaUtil {
             }
         }
         return classes.toArray(new Class[0]);
+    }
+
+    static public Class[] findUnknownClasses(Object e){
+        LinkedList l = new LinkedList();
+        l.add(e);
+        return findUnknownClassesInCollection(l);
     }
 }

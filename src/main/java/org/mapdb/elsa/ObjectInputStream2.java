@@ -6,7 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectStreamClass;
 
 /**
- * Created by jan on 3/28/16.
+ * Used internally to serializer objects which use Java Serialization hacks (writeReplace, writeExternal... methods).
  */
 final class ObjectInputStream2 extends ObjectInputStream {
 
@@ -34,7 +34,7 @@ final class ObjectInputStream2 extends ObjectInputStream {
         } else {
             className =serializerPojo.classInfoResolver.getClassInfo(classId).name;
         }
-        clazz = serializerPojo.loadClass(className);
+        clazz = serializerPojo.loadClassCached(className);
         final ObjectStreamClass descriptor = ObjectStreamClass.lookup(clazz);
 
         lastDescriptor = descriptor;
@@ -46,7 +46,7 @@ final class ObjectInputStream2 extends ObjectInputStream {
     @Override
     protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
         if (desc == lastDescriptor) return lastDescriptorClass;
-        Class<?> clazz = serializerPojo.loadClass(desc.getName());
+        Class<?> clazz = serializerPojo.loadClassCached(desc.getName());
         if (clazz != null)
             return clazz;
         return super.resolveClass(desc);
