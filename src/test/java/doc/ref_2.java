@@ -12,7 +12,7 @@ public class ref_2 {
     @Test
     public void reference() throws Exception {
         //#a
-        ElsaSerializer serializevr =
+        ElsaSerializer serializer =
                 new ElsaMaker()
                 .referenceHashMapEnable()
                 .make();
