@@ -2,7 +2,7 @@ Reference Tracking
 ======================
 
 Elsa needs to handle backward and circular references. 
-Lets take following object graph:
+Lets take two object graphs:
 
 <!---#file#doc/ref_1.java--->
 ```java
@@ -35,7 +35,7 @@ There are following alternative implementations:
 
 <!---#file#doc/ref_2.java--->
 ```java
-ElsaSerializer serializevr =
+ElsaSerializer serializer =
         new ElsaMaker()
         .referenceHashMapEnable()
         .make();

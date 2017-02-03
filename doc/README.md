@@ -20,9 +20,10 @@ It offers following features:
 - Cyclic Graph handling
     - Optional deduplication using `Object.equals`
     - Options to tune reference tracking overhead to various graph sizes
-    - Singletons handling 
+
 - Plugable serializer model 
     - Your own serializer can be integrated into Object Graph traversal
+    - User defined singletons 
     - Singleton resolvers etc... 
 - Long term storage on mind
     - Storage format is well specified

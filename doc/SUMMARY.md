@@ -1,7 +1,7 @@
 # Summary
 
 * [Foreword](README.md)
-* [Introduction](intro.md)
+* [Quick start](start.md)
 * [Options](options.md)
 * [Format](format.md)
 * [Known classes](known-classes.md)

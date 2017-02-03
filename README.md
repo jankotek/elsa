@@ -16,8 +16,15 @@ Elsa is great for storing objects on disk, network transfer, deep cloning etc..
 Elsa handles cyclic references and Java Serialization features such as `Externalizable` or
 `writeReplace()`.
 
-Elsa was originally part of [MapDB jar](http://www.mapdb.org), 
+Elsa was originally part of [MapDB](http://www.mapdb.org) database engine, 
 but was moved into separate library.
+
+Documentation
+-------------------
+
+Manual is [hosted on gitbooks](https://jankotek.gitbooks.io/elsa/content/). 
+
+*TODO once it is finished, make `readme.md` shorter.*
 
 Install and use
 ------------------
