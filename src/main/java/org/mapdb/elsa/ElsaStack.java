@@ -3,18 +3,19 @@ package org.mapdb.elsa;
 import java.util.*;
 
 /**
+ * <p>
  * ElsaStack contains already serialized object.
  * Elsa check for backward references, by comparing newly serialized objects against Stack content.
  * This comparation could be major overhead, so there are three strategies (Stack implementations) for object comparation:
- * <p/>
- * - IdentityHashMap is good for large object arrays, is enabled by default
- * <p/>
- * - HashMap is very slow (full Object.equals()), but performs full deduplication.
- * <p/>
- * - Array with linear search, smaller overhead, but performance degrades fast. Better for tiny objects (5 items)
- * <p/>
- * - No check. Good for primitive objects. Backward (more precisely cyclic) can cause infinitive loop.
+ * <ul>
+ *  <li>IdentityHashMap is good for large object arrays, is enabled by default</li>
  *
+ * <li>HashMap is very slow (full Object.equals()), but performs full deduplication.</li>
+ *
+ * <li>Array with linear search, smaller overhead, but performance degrades fast. Better for tiny objects (5 items)</li>
+ *
+ * <li>No check. Good for primitive objects. Backward (more precisely cyclic) can cause infinitive loop.</li>
+ * </ul>
  */
 public abstract class ElsaStack{
 
@@ -78,7 +79,7 @@ public abstract class ElsaStack{
     }
 
 
-    /** Uses map (typically {@link IdentityHashMap) to resolve objects. */
+    /** Uses map (typically {@link java.util.IdentityHashMap} to resolve objects. */
     public static final class MapStack extends ElsaStack{
 
         final Map<Object, Integer> data;

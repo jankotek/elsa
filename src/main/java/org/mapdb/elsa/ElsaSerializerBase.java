@@ -22,23 +22,24 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * <p>
  * Basic Elsa serializer and deserializer.
  * It recognizes some 'java.lang.*' and 'java.util.*' classes such as Long, String, HashMap...
- * <p/>
+ * </p><p>
  * This serializer does not analyze class structure and fields. This functionality is in {@link ElsaSerializerPojo}
  * Internally it uses {@code Map<Class,Serializer>} to decide what way to serialize class and {@code Map<HeaderByte, Deserializer>}
  * to deserialize data.
- * <p/>
+ * </p><p>
  * If this serializer finds unknown class at graph traversal, it will pass it to
  * {@link ElsaSerializerBase#serializeUnknownObject(DataOutput, Object, ElsaStack)} function for serialization.
  * By default this throws an {@code NotSerializableException}.
  * But this method can be overridden in subclasses to add extra functionality({@link ElsaSerializerPojo} is subclass).
- *<p/>
+ * </p><p>
  * If this deserializer finds unknown Header Byte (binary data type), it will pass it to
  * {@link ElsaSerializerBase#deserializeUnknownHeader(DataInput, int, ElsaStack)} function for deserialization.
  * By default this throws an {@code IOException}.
  * But this method can be overridden in subclasses to add extra functionality({@link ElsaSerializerPojo} is subclass).
- *
+ * </p>
  * @author Jan Kotek
  */
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -48,9 +49,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
     /**
      * Interface internally used by Elsa to serialize concrete single class.
      * Internally Elsa uses {@code Map<Class,Serializer>} to decide what serializer to use for each element.
-     * User can register their own serializers with {@link ElsaMaker#registerSerializer(int, Class, Serializer)}
+     * User can register their own serializers with {@code ElsaMaker#registerSerializer(int, Class, Serializer)}
      *
-     * @param <A>
+     * @param <A> type of value handled by this serializer
      */
     public static abstract class Serializer<A> {
 
@@ -59,6 +60,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
          *
          * @param out ObjectOutput to save object into
          * @param value Object to serialize
+         * @param objectStack object stack used to handle backward references
+         * @throws IOException an exceptio from underlying stream
          */
         abstract public void serialize( DataOutput out, A value, ElsaStack objectStack)
                 throws IOException;
@@ -67,8 +70,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
     /**
      * Interface internally used by Elsa to deserialize concrete Header Byte.
      * Internally Elsa uses {@code Map<Header Byte, Deserializer>} to decide what deserializer to use for each binary element.
-     * User can register their own Deserializers with {@link ElsaMaker#registerDeserializer(int, Deserializer)}
-     * @param <A>
+     * User can register their own Deserializers with {@code ElsaMaker#registerDeserializer(int, Deserializer)}
+     * @param <A> type of value this deserializer handles
      */
     public static abstract class Deserializer<A> {
 
@@ -76,8 +79,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
          * Deserialize the content of an object from a DataInput.
          *
          * @param in to read serialized data from
+         * @param objectStack object stack used to handle backward references
          * @return deserialized object
-         * @throws java.io.IOException
+         * @throws java.io.IOException from underlying stream
          */
         abstract public A deserialize(DataInput in,  ElsaStack objectStack)
                 throws IOException;
@@ -1676,15 +1680,27 @@ public class ElsaSerializerBase implements ElsaSerializer{
         return s;
     }
 
-    /** override this method to extend ElsaSerializerBase functionality*/
+    /** override this method to extend ElsaSerializerBase functionality
+     * @param out put binary data here
+     * @param obj object to be serialized
+     * @param objectStack objectStack for handling backward references
+     * @throws IOException an exception from underlying stream
+     */
     protected void serializeUnknownObject(DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
         throw new NotSerializableException("Could not serialize unknown object: "+obj.getClass().getName());
     }
+
     /** override this method to extend ElsaSerializerBase functionality
+     * @param is read binary data from here
+     * @param head binary header read from input stream
+     * @param objectStack objectStack for handling backward references
      * @throws org.mapdb.elsa.ElsaException.UnknownHeaderByte in default implementation if unknown Header Byte
+     * @throws IOException an exception from underlying stream
+     * @return deserialized object
      */
     protected Object deserializeUnknownHeader(DataInput is, int head, ElsaStack objectStack) throws IOException {
         //TODO better exception here, also change javadoc in
+
         throw new ElsaException.UnknownHeaderByte("Unknown serialization header: " + head);
     }
 
@@ -1693,7 +1709,10 @@ public class ElsaSerializerBase implements ElsaSerializer{
      *
      * @author Original author of this method is Chris Alexander, it was later optimized by Jan Kotek
      *
-     * @param bool The booleans to be writen.
+     * @param out write binary data here
+     * @param bool The booleans to be writen
+     *
+     * @throws IOException an exception from underlying stream
      */
     protected static void  writeBooleanArray(DataOutput out, boolean[] bool) throws IOException {
         int pos = 0;
@@ -1712,6 +1731,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
      * Unpacks boolean[], each value in array is represented by single bite
      *
      * @author  author of this method is Chris Alexander, it was later optimized by Jan Kotek
+     *
+     * @param numBools number of booleans to read
+     * @param  is read data from here
      *
      * @return The boolean array decompressed from the bytes read in.
      * @throws IOException If an error occurred while reading.
@@ -1942,7 +1964,12 @@ public class ElsaSerializerBase implements ElsaSerializer{
         int POJO_CLASSINFO = 176;
     }
 
-    /** return true if mapdb knows howto serialize given object*/
+    /**
+     * Checks if given object is known to Elsa.
+     * If false is returned, Elsa will use less efficient field serializer.
+     *
+     * @param o object to be checked
+     * @return true if mapdb knows howto serialize given object*/
     public boolean isSerializable(Object o) {
         //check if is known singleton
         if(singletonsReverse.containsKey(o)) {

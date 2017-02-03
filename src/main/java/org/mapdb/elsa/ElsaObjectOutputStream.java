@@ -17,7 +17,7 @@ public class ElsaObjectOutputStream extends OutputStream implements ObjectOutput
      * Takes DataOutput and Elsa Serializer
      * @param out DataOutput, serialized data are written here
      * @param serializer serializer which converts objects into binary form
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     public ElsaObjectOutputStream(DataOutput out, ElsaSerializerPojo serializer) throws IOException {
          super();
@@ -28,7 +28,7 @@ public class ElsaObjectOutputStream extends OutputStream implements ObjectOutput
     /**
      * Takes OutputStream and use default Elsa settings to construct new serializer
      * @param out OutputStream, serialized data are written here
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     public ElsaObjectOutputStream(OutputStream out) throws IOException {
         this(new DataOutputStream(out), new ElsaSerializerPojo());

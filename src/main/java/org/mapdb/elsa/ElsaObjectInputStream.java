@@ -15,7 +15,7 @@ public class ElsaObjectInputStream extends InputStream implements ObjectInput {
     /** Take InputStream and use default Elsa settings to construct new deserializer
      *
      * @param stream InputStream from which deserialized object will be read from
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     public ElsaObjectInputStream(InputStream stream) throws IOException {
         this(new DataInputStream(stream), new ElsaSerializerPojo());
@@ -26,7 +26,7 @@ public class ElsaObjectInputStream extends InputStream implements ObjectInput {
      *
      * @param input DataInput from which deserialized objects will be read from
      * @param serializer Elsa deserializer used to read objects
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     public ElsaObjectInputStream(DataInput input, ElsaSerializerPojo serializer) throws IOException {
         this.input = input;

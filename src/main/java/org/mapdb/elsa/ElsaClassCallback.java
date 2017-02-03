@@ -14,7 +14,9 @@ public interface ElsaClassCallback {
     };
 
 
-    /** called by Elsa when an unknown class is found during serialization */
+    /** called by Elsa when an unknown class is found during serialization
+     * @param clazz unknown class
+     */
     void classMissing(Class clazz);
 
 }

@@ -5,11 +5,13 @@ import java.util.Map;
 
 
 /**
+ * <p>
  * In binary data Class Names are replaced by `Integer` IDs.
  * This resolver maps Class Name to its ID and back.
- * <p/>
+ * </p><p>
  * This way you can implement your own way to store class information.
  * For example MapDB has custom Class Info resolver to store Class Infos in Class Catalog.
+ * </p>
  */
 public interface ElsaClassInfoResolver {
 
@@ -72,14 +74,14 @@ public interface ElsaClassInfoResolver {
     /**
      * Resolves Integer Class ID (used in binary data) into Class Info which contains  class name, fields name, fields order...
      *
-     * @param classId
-     * @return
+     * @param classId binary ID which represends class in serialized data
+     * @return Class structure information for given class
      */
     ElsaSerializerPojo.ClassInfo getClassInfo(int classId);
 
     /**
      * Resolves Class Name to its Class ID (used in binary data)/
-     * @param className
+     * @param className class name as returned by {@link Class#getName()}
      * @return Class ID, it is used in serialized binary data to identify class
      */
     int classToId(String className);

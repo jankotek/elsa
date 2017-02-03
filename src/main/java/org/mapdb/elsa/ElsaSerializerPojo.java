@@ -27,10 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
+ * <p>
  * Advanced Elsa Serializer.
  * On top of well known objects from {@link ElsaSerializerBase},
  * it can serialize any class by analyzing its fields.
- * <p/>
+ * </p>
  * TODO more javadoc
  *
  * @author  Jan Kotek
@@ -334,7 +335,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
     /** if class uses 'Java Serialization' trick such as `Externalizable`, `writeObject`, `writeReplace`... Elsa will use
      * {@link ObjectOutputStream} to serialize it.
      *
-     * @param clazz
+     * @param clazz class to be checked for serializatio tricks
      * @return true if Java Serialization should be used to serialize it
      */
     protected static boolean useJavaSerialization(Class<?> clazz) {
@@ -683,6 +684,9 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
      * </p><p>
      *   If non of these works we fallback into usual reflection which requires an no-arg constructor
      * </p>
+     * @param <T> type of object
+     * @param clazz class of object
+     * @return instantiated object
      */
     @SuppressWarnings("restriction")
 	protected <T> T createInstanceSkippinkConstructor(Class<T> clazz) {

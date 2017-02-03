@@ -198,8 +198,8 @@ public final class ElsaUtil {
      * Serializes content of iterable to find unknown classes.
      * That can be passed to {@link ElsaMaker#registerClasses(Class[])}
      * }
-     * @param e
-     * @return
+     * @param e iterable over objects, whose object graph will be checked
+     * @return array of unknown classes found in object graph
      */
     static public Class[] findUnknownClassesInCollection(Iterable e){
         final Set<Class> classes = new TreeSet(new Comparator<Class>() {

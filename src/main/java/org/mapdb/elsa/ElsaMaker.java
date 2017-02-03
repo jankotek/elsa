@@ -63,7 +63,7 @@ final public class ElsaMaker {
     /**
      * Register classes structure. It saves space since class structure does not have to be saved together with data.
      * Note: Order in which classes are registered defines storage format. To deserialize data back, you need to always register classes at the same order.
-     * @param classes
+     * @param classes classes which will be registered with class resolver
      * @return this maker
      */
     public ElsaMaker registerClasses(Class... classes){
@@ -76,7 +76,7 @@ final public class ElsaMaker {
      * Callback notified when class with unknown structure is serialized.
      * You can than add unknown Class to your Class Catalog (or whatever you are using)
      *
-     * @param callback
+     * @param callback callback notified when an unknown class is found
      * @return this maker
      */
     public ElsaMaker unknownClassNotification(ElsaClassCallback callback){
@@ -85,17 +85,17 @@ final public class ElsaMaker {
     }
 
     /**
-     * Register user serializer for single class.
-     * <p/>
+     * <p>Register user serializer for single class.
+     * </p><p>
      * Elsa decides what Serializer to use for each object based on objects class.
      * Internally it uses {@code Map<Class, Deserializer>} to resolve serializer.
      * Exact class match is used, so subclasses are not recognized and has to be registered separately.
-     * <p/>
+     * </p><p>
      * Each custom serializer also has Header ID. That is stored as part of binary data,
      * Elsa uses this ID to decide what deserializer to use on deserialization.
      * You need to register matching serializer with {@link ElsaMaker#registerDeserializer(int, ElsaSerializerBase.Deserializer)}.
      * Without ID, Elsa would not be able to deserialize binary data.
-     *
+     * </p>
      * @param header deserializer ID, is stored in binary data and used on deserialization.
      * @param clazz object class is used to decide what serializer to use
      * @param serializer serializer which turns object instance to binary data
@@ -112,11 +112,13 @@ final public class ElsaMaker {
     }
 
     /**
+     * <p>
      * Register custom deserializer for single Header ID.
-     * <p/>>
+     * </p><p>
      * Elsa stores Header ID in binary data, it is used to decide what deserializer to use.
      * See {@link ElsaMaker#registerSerializer(int, Class, ElsaSerializerBase.Serializer)} for more details
-      *
+      *</p>
+     *
      * @param header associated with this deserializer.
      * @param deser deserializer used to turn binary data into object
      * @return this maker

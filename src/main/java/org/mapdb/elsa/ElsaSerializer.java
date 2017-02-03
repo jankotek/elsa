@@ -16,7 +16,7 @@ public interface ElsaSerializer {
      *
      * @param output output into which binary data will be written while object is serialized
      * @param obj object instance to be serialized
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     void serialize(DataOutput output, Object obj) throws IOException;
 
@@ -24,9 +24,9 @@ public interface ElsaSerializer {
      * Reads binary data from input and converts them into object instances.
      *
      * @param input input to read data from
-     * @param <E>
+     * @param <E> type of deserialized object
      * @return deserialized object
-     * @throws IOException
+     * @throws IOException an exception from underlying stream
      */
     <E> E deserialize(DataInput input) throws IOException;
 
@@ -35,9 +35,9 @@ public interface ElsaSerializer {
      * Returned object should be equal to original, but is completely different instance.
      *
      * @param obj object instance to be cloned
-     * @param <E>
-     * @return clone
-     * @throws IOException
+     * @param <E> type of cloned object
+     * @return deep clone
+     * @throws IOException an exception from underlying stream
      */
     <E> E clone(E obj) throws IOException;
 }
