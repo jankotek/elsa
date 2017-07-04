@@ -53,7 +53,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
      *
      * @param <A> type of value handled by this serializer
      */
-    public static abstract class Serializer<A> {
+    public interface Serializer<A> {
 
         /**
          * Serialize the content of an object into a ObjectOutput`
@@ -63,7 +63,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
          * @param objectStack object stack used to handle backward references
          * @throws IOException an exceptio from underlying stream
          */
-        abstract public void serialize( DataOutput out, A value, ElsaStack objectStack)
+        void serialize( DataOutput out, A value, ElsaStack objectStack)
                 throws IOException;
     }
 
@@ -73,7 +73,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
      * User can register their own Deserializers with {@code ElsaMaker#registerDeserializer(int, Deserializer)}
      * @param <A> type of value this deserializer handles
      */
-    public static abstract class Deserializer<A> {
+    public interface Deserializer<A> {
 
         /**
          * Deserialize the content of an object from a DataInput.
@@ -83,17 +83,17 @@ public class ElsaSerializerBase implements ElsaSerializer{
          * @return deserialized object
          * @throws java.io.IOException from underlying stream
          */
-        abstract public A deserialize(DataInput in,  ElsaStack objectStack)
+        A deserialize(DataInput in,  ElsaStack objectStack)
                 throws IOException;
 
         /** @return true if this deserializers uses recursion to serialize subelements (is collection, array...) */
-        public boolean needsObjectStack(){
+        default boolean needsObjectStack(){
             return false;
         }
     }
 
     /** always returns single object without reading anything*/
-    protected final class DeserSingleton extends Deserializer {
+    protected final class DeserSingleton implements Deserializer {
 
         protected final Object singleton;
 
@@ -109,7 +109,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
     /** User Serializers have designated Header Byte, followed by packed Int which identifies User Serializer.
      * This serializer writes those data first*/
-    protected final static class UserSerializer extends Serializer {
+    protected final static class UserSerializer implements Serializer {
         protected final int header;
         protected final Serializer ser;
 
@@ -126,7 +126,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         }
     }
 
-    protected static final class DeserStringLen extends Deserializer {
+    protected static final class DeserStringLen implements Deserializer {
         final int len;
 
         DeserStringLen(int len) {
@@ -140,7 +140,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
     }
 
 
-    protected static final class DeserInt extends Deserializer {
+    protected static final class DeserInt implements Deserializer {
 
         protected final int digits;
         protected final boolean minus;
@@ -162,7 +162,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         }
     }
 
-    protected static final class DeserLong extends Deserializer {
+    protected static final class DeserLong implements Deserializer {
 
         protected final int digits;
         protected final boolean minus;
