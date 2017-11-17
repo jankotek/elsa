@@ -16,13 +16,8 @@
 package org.mapdb.elsa;
 
 import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -507,6 +502,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
         ObjectStreamField[] fields = fieldsForClass(obj.getClass());
         ElsaUtil.packInt(out, fields.length);
 
+        List fieldValues = new ArrayList(fields.length);
         for (ObjectStreamField f : fields) {
             //write field ID
             int fieldId = classInfo.getFieldId(f.getName());
@@ -521,8 +517,9 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             ElsaUtil.packInt(out, fieldId);
             //and write value
             Object fieldValue = getFieldValue(classInfo.fields[fieldId], obj);
-            serialize(out, fieldValue, objectStack);
+            fieldValues.add(fieldValue);
         }
+        objectStack.stackPushReverse(fieldValues);
     }
 
     @Override
@@ -576,9 +573,13 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             }
 
             int fieldCount = ElsaUtil.unpackInt(in);
+            int[] fieldIds = new int[fieldCount];
             for (int i = 0; i < fieldCount; i++) {
-                int fieldId = ElsaUtil.unpackInt(in);
-                 FieldInfo f = classInfo.fields[fieldId];
+                fieldIds[i] = ElsaUtil.unpackInt(in);
+            }
+
+            for (int fieldId:fieldIds) {
+                FieldInfo f = classInfo.fields[fieldId];
                 Object fieldValue = deserialize(in, objectStack);
                 setFieldValue(f, o, fieldValue);
             }

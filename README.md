@@ -71,7 +71,7 @@ DataInputStream in = new DataInputStream(
         new ByteArrayInputStream(out.toByteArray()));
 
 // now deserialize data using DataInput
-String data2 = serializer.deserialize(in);
+String data2 = (String)serializer.deserialize(in);
 ```
 
 Support

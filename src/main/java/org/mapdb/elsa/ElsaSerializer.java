@@ -24,11 +24,10 @@ public interface ElsaSerializer {
      * Reads binary data from input and converts them into object instances.
      *
      * @param input input to read data from
-     * @param <E> type of deserialized object
      * @return deserialized object
      * @throws IOException an exception from underlying stream
      */
-    <E> E deserialize(DataInput input) throws IOException;
+    Object deserialize(DataInput input) throws IOException;
 
     /**
      * Deep binary clone. Serialize object into binary form, and then use data to deserialize it.

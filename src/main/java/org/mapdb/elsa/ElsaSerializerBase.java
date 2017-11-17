@@ -444,9 +444,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeSet l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREESET);
                 ElsaUtil.packInt(out, l.size());
-                ElsaSerializerBase.this.serialize(out, l.comparator(), objectStack);
-                for (Object o : l)
-                    ElsaSerializerBase.this.serialize(out, o, objectStack);
+
+                objectStack.stackPushReverse(l);
+                objectStack.stackPush(l.comparator());
             }
         });
 
@@ -455,11 +455,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeMap<Object,Object> l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREEMAP);
                 ElsaUtil.packInt(out, l.size());
-                ElsaSerializerBase.this.serialize(out, l.comparator(), objectStack);
-                for (Map.Entry o : l.entrySet()) {
-                    ElsaSerializerBase.this.serialize(out, o.getKey(), objectStack);
-                    ElsaSerializerBase.this.serialize(out, o.getValue(), objectStack);
-                }
+
+                objectStack.stackPushReverse(l);
+                objectStack.stackPush(l.comparator());
             }
         });
         //TODO object stack handling is probably all broken. write paranoid tests!!!
@@ -490,10 +488,9 @@ public class ElsaSerializerBase implements ElsaSerializer{
             // Write class for components
             Class<?> componentType = b.getClass().getComponentType();
             serializeClass(out, componentType);
-
-            for (Object o : b)
-                this.serialize(out, o, objectStack);
-
+            for(int i=b.length-1; i>=0;i--){
+                objectStack.stackPush(b[i]);
+            }
         }
     }
 
@@ -1062,8 +1059,15 @@ public class ElsaSerializerBase implements ElsaSerializer{
 
 
     @Override
-    public void serialize(final DataOutput output, final Object obj) throws IOException {
-        serialize(output, obj, newElsaStack());
+    public void serialize(final DataOutput output, Object obj) throws IOException {
+        ElsaStack stack = newElsaStack();
+        while (true) {
+            serialize(output, obj, stack);
+            if(stack.stackEmpty())
+                return;
+            obj = stack.stackPop();
+
+        }
     }
 
     protected ElsaStack newElsaStack() {
@@ -1086,7 +1090,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         return (E) deserialize(ins);
     }
 
-    public void serialize(final DataOutput out, final Object obj, ElsaStack objectStack) throws IOException {
+    private void serialize(final DataOutput out, final Object obj, ElsaStack objectStack) throws IOException {
 
         if (obj == null) {
             out.write(Header.NULL);
@@ -1129,7 +1133,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
             return;
         }
 
-        //unknown clas
+        //unknown class
         serializeUnknownObject(out,obj,objectStack);
     }
 
@@ -1460,10 +1464,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         Map<Object,Object> l = (Map) obj;
         out.write(header);
         ElsaUtil.packInt(out, l.size());
-        for (Map.Entry o : l.entrySet()) {
-            serialize(out, o.getKey(), objectStack);
-            serialize(out, o.getValue(), objectStack);
-        }
+        objectStack.stackPushReverse(l);
     }
 
     private void serializeCollection(int header, DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
@@ -1471,9 +1472,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         out.write(header);
         ElsaUtil.packInt(out, l.size());
 
-        for (Object o : l)
-            serialize(out, o, objectStack);
-
+        objectStack.stackPushReverse(l);
     }
 
 
@@ -1520,8 +1519,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
     }
 
     @Override
-    public <E> E deserialize(DataInput input) throws IOException {
-        return (E)deserialize(input, newElsaStack());
+    public Object deserialize(DataInput input) throws IOException {
+        return deserialize(input, newElsaStack());
     }
 
     public Object deserialize(DataInput in, ElsaStack objectStack) throws IOException {

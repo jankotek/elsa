@@ -20,6 +20,7 @@ import java.util.*;
 public abstract class ElsaStack{
 
 
+
     /** uses array with linear identity (==) search. Uses little memory, but performance degrades fast with number of objects on stack */
     public static final class IdentityArray extends ElsaStack{
 
@@ -167,6 +168,56 @@ public abstract class ElsaStack{
 
     public ElsaSerializerPojo.ClassInfo resolveClassInfo(int classId) {
         return classInfos[classId];
+    }
+
+    private static final Object NULL = new Object();
+
+    private Deque stack = null;
+
+    public Object stackPop(){
+        Object ret = stack.pop();
+        if(ret==NULL)
+            ret = null;
+        return ret;
+    }
+
+    public boolean stackEmpty(){
+        return stack==null || stack.isEmpty();
+    }
+
+    public void stackPush(Object o) {
+        if(o==null)
+            o = NULL;
+
+        if(stack==null) {
+            //lazy allocation, ArrayDeque has an array, is relatively big object
+            stack = new ArrayDeque();
+        }
+        stack.push(o);
+    }
+
+    public void stackPushReverse(Map<?,?> a) {
+        List l = new ArrayList();
+        for(Map.Entry<?,?> e : a.entrySet()){
+            l.add(e.getKey());
+            l.add(e.getValue());
+        }
+        Collections.reverse(l);
+        //TODO reverse inside the stack, do not allocate an ArrayList
+
+        for(Object o:l) {
+            stackPush(o);
+        }
+    }
+
+    public void stackPushReverse(Collection a) {
+        List l = new ArrayList(a);
+        Collections.reverse(l);
+        //TODO reverse inside the stack, do not allocate an ArrayList
+
+        for(Object o:l){
+            stackPush(o);
+        }
     }
 
 }

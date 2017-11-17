@@ -1,12 +1,9 @@
 package examples;
 
 import org.junit.Test;
-import org.mapdb.elsa.ElsaMaker;
-import org.mapdb.elsa.ElsaSerializerPojo;
+import org.mapdb.elsa.*;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,7 +28,7 @@ public class Hello_World {
         //now deserialize data using DataInput
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
 
-        String data2 = serializer.deserialize(in);
+        String data2 = (String)serializer.deserialize(in);
         assertEquals(data, data2);
     }
 
