@@ -444,9 +444,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeSet l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREESET);
                 ElsaUtil.packInt(out, l.size());
-
-                objectStack.stackPushReverse(l);
                 objectStack.stackPush(l.comparator());
+                objectStack.stackPushIter(l);
             }
         });
 
@@ -455,9 +454,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
             public void serialize(DataOutput out, TreeMap<Object,Object> l, ElsaStack objectStack) throws IOException {
                 out.write(Header.TREEMAP);
                 ElsaUtil.packInt(out, l.size());
-
-                objectStack.stackPushReverse(l);
                 objectStack.stackPush(l.comparator());
+                objectStack.stackPushMap(l);
             }
         });
         //TODO object stack handling is probably all broken. write paranoid tests!!!
@@ -488,8 +486,8 @@ public class ElsaSerializerBase implements ElsaSerializer{
             // Write class for components
             Class<?> componentType = b.getClass().getComponentType();
             serializeClass(out, componentType);
-            for(int i=b.length-1; i>=0;i--){
-                objectStack.stackPush(b[i]);
+            for(Object a:b){
+                objectStack.stackPush(a);
             }
         }
     }
@@ -1063,6 +1061,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         ElsaStack stack = newElsaStack();
         while (true) {
             serialize(output, obj, stack);
+            stack.stackFinish(); //rotate new objects on stack
             if(stack.stackEmpty())
                 return;
             obj = stack.stackPop();
@@ -1464,7 +1463,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         Map<Object,Object> l = (Map) obj;
         out.write(header);
         ElsaUtil.packInt(out, l.size());
-        objectStack.stackPushReverse(l);
+        objectStack.stackPushMap(l);
     }
 
     private void serializeCollection(int header, DataOutput out, Object obj, ElsaStack objectStack) throws IOException {
@@ -1472,7 +1471,7 @@ public class ElsaSerializerBase implements ElsaSerializer{
         out.write(header);
         ElsaUtil.packInt(out, l.size());
 
-        objectStack.stackPushReverse(l);
+        objectStack.stackPushIter(l);
     }
 
 

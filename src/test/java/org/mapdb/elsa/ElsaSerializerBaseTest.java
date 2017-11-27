@@ -177,10 +177,11 @@ public class ElsaSerializerBaseTest {
 
     @Test public void testBigString() throws IOException{
         String bigString = "";
-        for (int i = 0; i < 1e4; i++)
+        for (int i = 0; i < 1e4; i++) {
             bigString += i % 10;
-        String l2 = clone(bigString);
-        assertEquals(l2, bigString);
+            String l2 = clone(bigString);
+            assertEquals(l2, bigString);
+        }
     }
 
 
@@ -196,95 +197,77 @@ public class ElsaSerializerBaseTest {
 
     @Test public void testArrayList() throws ClassNotFoundException, IOException {
         Collection c = new ArrayList();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 1000; i++) {
             c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testLinkedList() throws ClassNotFoundException, IOException {
         Collection c = new java.util.LinkedList();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
 
 
     @Test public void testTreeSet() throws ClassNotFoundException, IOException {
         Collection c = new TreeSet();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testHashSet() throws ClassNotFoundException, IOException {
         Collection c = new HashSet();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testLinkedHashSet() throws ClassNotFoundException, IOException {
         Collection c = new LinkedHashSet();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.add(i);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.add(i);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testHashMap() throws ClassNotFoundException, IOException {
         Map c = new HashMap();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testTreeMap() throws ClassNotFoundException, IOException {
         Map c = new TreeMap();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
     @Test public void testLinkedHashMap() throws ClassNotFoundException, IOException {
         Map c = new LinkedHashMap();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
 
     @Test public void testProperties() throws ClassNotFoundException, IOException {
         Properties c = new Properties();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 2000; i++) {
             c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
-        for (int i = 0; i < 2000; i++)
-            c.put(i, i + 10000);
-        assertEquals(c, clone((c)));
+            assertEquals(c, clone((c)));
+        }
     }
 
 

@@ -173,6 +173,7 @@ public abstract class ElsaStack{
     private static final Object NULL = new Object();
 
     private Deque stack = null;
+    private List curr = null;
 
     public Object stackPop(){
         Object ret = stack.pop();
@@ -192,32 +193,34 @@ public abstract class ElsaStack{
         if(stack==null) {
             //lazy allocation, ArrayDeque has an array, is relatively big object
             stack = new ArrayDeque();
+            curr = new ArrayList();
         }
-        stack.push(o);
+        curr.add(o);
     }
 
-    public void stackPushReverse(Map<?,?> a) {
-        List l = new ArrayList();
+    public void stackPushMap(Map<?,?> a) {
         for(Map.Entry<?,?> e : a.entrySet()){
-            l.add(e.getKey());
-            l.add(e.getValue());
+            stackPush(e.getKey());
+            stackPush(e.getValue());
         }
-        Collections.reverse(l);
-        //TODO reverse inside the stack, do not allocate an ArrayList
+    }
 
-        for(Object o:l) {
+    public void stackPushIter(Iterable a) {
+        for(Object o:a){
             stackPush(o);
         }
     }
 
-    public void stackPushReverse(Collection a) {
-        List l = new ArrayList(a);
-        Collections.reverse(l);
-        //TODO reverse inside the stack, do not allocate an ArrayList
 
-        for(Object o:l){
-            stackPush(o);
+    protected void stackFinish(){
+        if(curr==null)
+            return;
+
+        //add to stack in reverse order
+        for(int i=curr.size()-1; i>=0; i--){
+            stack.push(curr.get(i));
         }
-    }
+        curr.clear();
 
+    }
 }

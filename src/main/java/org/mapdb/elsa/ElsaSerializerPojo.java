@@ -519,7 +519,7 @@ public class ElsaSerializerPojo extends ElsaSerializerBase implements Serializab
             Object fieldValue = getFieldValue(classInfo.fields[fieldId], obj);
             fieldValues.add(fieldValue);
         }
-        objectStack.stackPushReverse(fieldValues);
+        objectStack.stackPushIter(fieldValues);
     }
 
     @Override
